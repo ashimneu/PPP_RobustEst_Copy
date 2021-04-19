@@ -108,10 +108,7 @@ bx   = ones(n,1);
 Pbx  = diag(bx);
 Pby  = diag(by);
 PhiH = Pby*H_os;
-nsv  = sum(by(1:num)); % count of measurements used
-dnsv = 2*num - nsv;    % count of measurements discarded
-nprior = sum(bx);  % count of priors used
-dnprior = n - nprior; % count of priors discarded
+
 H_pos_vel = PhiH(:,1:6);
 
 dx = ((PhiH'*yCov^(-1)*PhiH+ P_prior^(-1))^(-1))*...
@@ -136,14 +133,14 @@ err2 = norm(grdpos - pos2);
 % Compute posterior xhat covariance
 Hbar = PhiH; % Hbar = [PhiH(:,1:10), PhiH(:,end)];
 % Rbar = eye(size(Hbar,1))./p.sig_y^2;
-Rbar_R = eye(num)./p.sig_y^2; 
-Rbar_D = eye(num)./p.sig_y_dop^2;
-Rbar   = blkdiag(Rbar_R,Rbar_D);
-P_post = (Hbar'*Rbar*Hbar + P_prior^(-1))^(-1);
+iR_psr = eye(num)./p.sig_y^2; 
+iR_dop = eye(num)./p.sig_y_dop^2;
+invR   = blkdiag(iR_psr,iR_dop);
+P_post = (Hbar'*invR*Hbar + P_prior^(-1))^(-1);
 
 %--------------------------%
 % Compute posterior information (obtained from observations only)
-Jydiag = diag(PhiH'*Rbar*PhiH);
+Jydiag = diag(PhiH'*invR*PhiH);
  
 %--------------------------%
 % Compute residual
@@ -156,18 +153,12 @@ residual = cb - Ab*dx ;
 msr_res  = residual(1:2*num);
 
 % Compute GDOP
-PhiH2 = PhiH(1:num,1:3);
-yCov2 = p.sig_y^2.*eye(num); % noise covariance
-GDOP = sqrt(trace((PhiH2'*yCov2^(-1)*PhiH2)^(-1)));
+Hbar_psr = remove0colrow(PhiH(1:num,1:3),"column");
+GDOP = sqrt(trace((Hbar_psr'*iR_psr*Hbar_psr)^(-1)));
 
-% % Compute posterior xhat covariance
-% Hbar   = [PhiH(:,1:10), PhiH(:,end)];
-% Rbar   = eye(size(Hbar,1))./p.sig_y^2;
-% P_post = (Hbar'*Rbar*Hbar + P_prior^(-1))^(-1);
-% 
-% % Compute GDOP
-% H_os2 = [H, H_offset];
-% R2 = p.sig_y^2.*eye(num); % noise covariance
-% GDOP = sqrt(trace((H_os2'*R2^(-1)*H_os2)^(-1)));
+nsv  = sum(by); % count of measurements used
+dnsv = 2*num - nsv;    % count of measurements discarded
+nprior = sum(bx);  % count of priors used
+dnprior = n - nprior; % count of priors discarded
 
 end

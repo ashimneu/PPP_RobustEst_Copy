@@ -112,11 +112,6 @@ end
 
 % by = ones(2*num,1);
 bx      = ones(n,1);   % prior selection binary vector; we use all priors
-nsv     = sum(by);     % count of measurements used
-dnsv    = 2*num - nsv; % count of measurements discarded
-nprior  = sum(bx);     % count of priors used
-dnprior = n - nprior;  % count of priors discarded
-
 Pby  = diag(by);
 Pbx  = eye(n);
 PhiH = Pby*H_os;
@@ -142,27 +137,17 @@ x_prior2 = [x_prior(1:6); x_prior(9+ind_s2); x_prior(end)];
 pos2 = x_prior(1:3) + delta_x2(1:3);
 err2 = norm(grdpos - pos2);
 
-% [x_post,P_prior] = adjust_entries(p,x_post,P_prior,2);
-
-% % removes zero columns & rows to prevent singular matrix inversion
-% % when any sat constellation isn't present after measurement selection
-% Hbar    = PhiH;
-% zerocol = ~any(PhiH,1); % assigns 0 if col of 0s is present
-% Hbar(:,zerocol) = [];   % removes cols of 0s
-% zerorow = ~any(Hbar,2); % assigns 0 if row of 0s is present
-% Hbar(zerorow,:) = [];   % removes rows of 0s
 
 % Compute posterior xhat covariance
 Hbar = PhiH; % Hbar = [PhiH(:,1:10), PhiH(:,end)];
-% Rbar = eye(size(Hbar,1))./p.sig_y^2;
-Rbar_R = eye(num)./p.sig_y^2; 
-Rbar_D = eye(num)./p.sig_y_dop^2;
-Rbar   = blkdiag(Rbar_R,Rbar_D);
-P_post = (Hbar'*Rbar*Hbar + P_prior^(-1))^(-1);
+iR_psr = eye(num)./p.sig_y^2; 
+iR_dop = eye(num)./p.sig_y_dop^2;
+invR   = blkdiag(iR_psr,iR_dop);
+P_post = (Hbar'*invR*Hbar + P_prior^(-1))^(-1);
 
 %--------------------------%
 % Compute posterior information (obtained from observations only)
-Jydiag = diag(PhiH'*Rbar*PhiH);
+Jydiag = diag(PhiH'*invR*PhiH);
  
 %--------------------------%
 % Compute residual
@@ -175,9 +160,12 @@ residual = cb - Ab*dx ;
 msr_res  = residual(1:2*num);
 
 % Compute GDOP
-PhiH2 = PhiH(:,1:6);
-yCov2 = p.sig_y^2.*eye(2*num); % noise covariance
-GDOP = sqrt(trace((PhiH2'*yCov2^(-1)*PhiH2)^(-1)));
-err = [p.i err1 err2];
-xCov = [diag(p.P_cov) diag(P_prior) diag(P_post)];
+Hbar_psr = remove0colrow(PhiH(1:num,1:3),"column");
+GDOP = sqrt(trace((Hbar_psr'*iR_psr*Hbar_psr)^(-1)));
+
+nsv     = sum(by);     % count of measurements used
+dnsv    = 2*num - nsv; % count of measurements discarded
+nprior  = sum(bx);     % count of priors used
+dnprior = n - nprior;  % count of priors discarded
+
 end

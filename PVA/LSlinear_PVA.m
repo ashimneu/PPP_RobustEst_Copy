@@ -1,4 +1,4 @@
-function [pos,msr_res_tru,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,delta_x,Jydiag,by,H_pos_vel] = ...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,delta_x,Jydiag,by,H_pos_vel] = ...
     LSlinear_PVA(p,cpt,grdpos,x_prior,P_prior_in)
 
  
@@ -105,8 +105,10 @@ err2 = norm(grdpos - pos2);
 
 
 % Posterior xhat covariance
-yCov   = eye(2*num).*p.sig_y^2; % R inverse
-P_post = (H_os'*yCov^(-1)*H_os + P_prior_in^(-1))^(-1);
+iR_psr = eye(num)./p.sig_y^2; 
+iR_dop = eye(num)./p.sig_y_dop^2;
+invR   = blkdiag(iR_psr,iR_dop);
+P_post = (H_os'*invR*H_os + P_prior_in^(-1))^(-1);
 
 % Posterior information (obtained from observations only)
 Jydiag = diag(H_os'*yCov^(-1)*H_os);
@@ -120,14 +122,11 @@ E_P = sqrtm(P_prior_in^(-1));
 A = [E_R*H_os; E_P];
 c = [E_R*[res_R;res_D]; E_P*mu_x];
 residual = c - A*delta_x;
-% msr_res  = residual(1:2*num);
+msr_res  = residual(1:2*num);
 
 %--------------------------%
 % Compute GDOP
-H_os3 = [H,zeros(size(H)); zeros(size(H)),H]; %[H, H_clk];
-yCov2 = p.sig_y^2.*eye(2*num); % noise covariance
-% delta_x = ((H_os2'*R2^(-1)*H_os2+Pcov^(-1))^(-1))*(H_os2'*R2^(-1)*res);
-GDOP = sqrt(trace((H_os3'*yCov2^(-1)*H_os3)^(-1)));
+GDOP = sqrt(trace((H'*iR_psr*H)^(-1)));
 
 %-----------------------%
 n       = size(x_prior);
@@ -138,25 +137,24 @@ dnprior = 0; % number of priors discarded
 by      = ones(2*num,1);
 H_pos_vel = H_os(:,1:6);
 
-%---------------------------%
-% Compute pseudorange & doppler residual to compute Measurement Covar. R
-ind = find(cpt.num_sv([1 3 4])~=0);;
-linearization_point = [grdpos; zeros(3,1); zeros(3,1); x_post(10+ind); 142.1628]; % true state vector
-for j=1:num
-    R(j)=norm(s_pos_ecef(:,j)-linearization_point(1:3));
-    H(j,:) = (linearization_point(1:3)-s_pos_ecef(:,j))'/R(j)+...
-        [-s_pos_ecef(2,j)*p.omge/p.c s_pos_ecef(1,j)*p.omge/p.c 0];
-    rv(j) = -H(j,:)*(s_v_ecef(:,j)-linearization_point(4:6))+...
-        sagnac_v(p,[s_pos_ecef(:,j);s_v_ecef(:,j)],linearization_point);
-    r(j) = R(j)+sagnac(p,s_pos_ecef(:,j),linearization_point);
-    ind = find(H_clk(j,:)==1);
-%     clk_bia_tru(j) = sum(linearization_point(9+ind));
-end
-% H_os = [H,zeros(size(H)),zeros(num,3),H_clk,zeros(num,1);
-%     zeros(size(H)),H,zeros(num,3),zeros(size(H_clk)),ones(num,1)];
-res_R_tru = y_R - r - clk_bia;
-res_D_tru = (y_D - (rv+linearization_point(end)));
-msr_res_tru = [res_R_tru; res_D_tru];
+% %---------------------------%
+% % Compute pseudorange & doppler residual to compute Measurement Covar. R
+% ind = find(cpt.num_sv([1 3 4])~=0);;
+% linearization_point = [grdpos; zeros(3,1); zeros(3,1); x_post(10+ind); 142.1628]; % true state vector
+% for j=1:num
+%     R(j)=norm(s_pos_ecef(:,j)-linearization_point(1:3));
+%     H(j,:) = (linearization_point(1:3)-s_pos_ecef(:,j))'/R(j)+...
+%         [-s_pos_ecef(2,j)*p.omge/p.c s_pos_ecef(1,j)*p.omge/p.c 0];
+%     rv(j) = -H(j,:)*(s_v_ecef(:,j)-linearization_point(4:6))+...
+%         sagnac_v(p,[s_pos_ecef(:,j);s_v_ecef(:,j)],linearization_point);
+%     r(j) = R(j)+sagnac(p,s_pos_ecef(:,j),linearization_point);
+%     ind = find(H_clk(j,:)==1);
+% %     clk_bia_tru(j) = sum(linearization_point(9+ind));
+% end
+% % H_os = [H,zeros(size(H)),zeros(num,3),H_clk,zeros(num,1);
+% %     zeros(size(H)),H,zeros(num,3),zeros(size(H_clk)),ones(num,1)];
+% res_R_tru = y_R - r - clk_bia;
+% res_D_tru = (y_D - (rv+linearization_point(end)));
+% msr_res_tru = [res_R_tru; res_D_tru];
 
-dnprior = num;
 end

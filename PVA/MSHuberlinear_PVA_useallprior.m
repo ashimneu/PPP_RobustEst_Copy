@@ -1,4 +1,4 @@
-function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,by,H_pos_vel] = ...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,wy,H_pos_vel] = ...
     MSHuberlinear_PVA_useallprior(p,cpt,grdpos,x_prior,P_prior,HuberConst)
 ind_s = [1 2 3];
 xk = [x_prior(1:9);x_prior(9+ind_s);x_prior(13)]; % point of linearization
@@ -66,6 +66,8 @@ c     = [E_R*[res_R;res_D]; E_P*mu_x];
 flag = [NaN(2*num,1); ones(n,1)];
 [dx,Wsquared] = Mestimator(c,A,HuberConst,flag);
 w = sqrt(diag(Wsquared)); % vector of weights
+wy = w(1:2*num);
+wx = w(2*num+1:end);
 %-----------------------%
 xk  = xk + dx;
 x_post = xk;
@@ -74,14 +76,10 @@ err1 = norm(grdpos - pos);
 end
 
 %---------------------------
-wy = w(1:2*num); by = wy;
-wx = w(2*num+1:end);
-nonzero_wy = find(wy); % find non-zero weights
-nonzero_wx = find(wx); % find non-zero weights
-nsv  = numel(nonzero_wy); % number of measurements used
-dnsv = num - nsv; % number of measurements discarded
-nprior  = size(nonzero_wx,1);  % number of priors used
-dnprior = size(wx,1) - nprior; % number of priors discarded
+nsv  = numel(find(wy)); % number of measurements used
+dnsv = 2*num - nsv; % number of measurements discarded
+nprior  = size(find(wx),1);  % number of priors used
+dnprior = n - nprior; % number of priors discarded
 
 %--------------------------------------------------------------------------
 ind_s2 = find(cpt.num_sv([1,3,4]) ~= 0);
@@ -94,28 +92,9 @@ x_prior2 = [x_prior(1:6); x_prior(9+ind_s2); x_prior(end)];
 pos2 = x_prior(1:3) + delta_x2(1:3);
 err2 = norm(grdpos - pos2);
 
-% for GDOP computation, truncate A & weights to remove portion
-% corresponding to prior & keep that corresponding to measurement.
-A_trunc = A(1:2*num,:); % truncated A matrix
-Uy = diag(wy);          % weight matrix truncated
-aug_A = Uy * A_trunc;   % 
-
-% Remark: A_aug is likely to have 0's column after measurement selection by
-% weights_trunc when all satellites observation of certain constellation
-% are given 0 weight by Mestimator. This will lead to singular matrix 
-% inversion in GDOP calculation. To prevent this, 0's column need to be 
-% checked for and removed.
-
-% remove 0's columns from A_aug (if present)
-aug_Abar = aug_A;
-zerocol  = ~any(aug_A,1); % index of 0's column
-aug_Abar(:,zerocol) = []; % removes 0's column
-
-% compute GDOP
-GDOP = sqrt(trace(inv(p.sig_y^-2*(aug_Abar'*aug_Abar))));
-
 %--------------------------%
 % Compute residual
+Uy = diag(wy); % measurement weight
 E_R = sqrtm(yCov^(-1));
 E_P = sqrtm(P_prior^(-1));
 Ab  = [E_R*Uy*H_os; E_P];
@@ -123,16 +102,21 @@ cb  = [E_R*Uy*[res_R;res_D]; E_P*mu_x];
 residual = cb - Ab*dx ;
 msr_res  = residual(1:2*num);
 
-% Compute posterior xhat covariance
+
+% Compute posterior covariance matrix
 Hbar   = Uy*H_os;
 H_pos_vel = Hbar(:,1:6);
-Rbar_R = eye(num)./p.sig_y^2; 
-Rbar_D = eye(num)./p.sig_y_dop^2;
-Rbar   = blkdiag(Rbar_R,Rbar_D);
-P_post = (Hbar'*Rbar*Hbar + P_prior^(-1))^(-1);
+iR_psr = eye(num)./p.sig_y^2; 
+iR_dop = eye(num)./p.sig_y_dop^2;
+invR  = blkdiag(iR_psr,iR_dop);
+P_post = (Hbar'*invR*Hbar + P_prior^(-1))^(-1);
 
 % Compute posterior information (obtained from observations only)
-Jydiag = diag(Hbar'*Rbar*Hbar);
+Jydiag = diag(Hbar'*invR*Hbar);
+
+% compute GDOP
+Hbar_psr = remove0colrow(Hbar(1:num,1:3),"column");
+GDOP = sqrt(trace(inv(Hbar_psr'*iR_psr*Hbar_psr)));
 
 end
 %%%%=======================================================================

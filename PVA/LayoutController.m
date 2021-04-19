@@ -369,10 +369,10 @@ function fig_array = createFigArray(solvername)
     fig_infopos = findobj('type','figure','tag',strcat("info_pos_",solvername));
     fig_infoclk = findobj('type','figure','tag',strcat("info_clk_",solvername));
     fig_pos_err = findobj('type','figure','tag',strcat("pos_err_",solvername));    
-    fig_estpred_cov = findobj('type','figure','tag',strcat("estpred_cov_",solvername));
+    fig_estpred_std = findobj('type','figure','tag',strcat("estpred_std_",solvername));
     
     fig_array = [fig_pos; fig_vel; fig_acl; fig_clk; fig_isb; fig_res;...
-        fig_max_res; fig_infopos; fig_infoclk; fig_pos_err; fig_estpred_cov];
+        fig_max_res; fig_infopos; fig_infoclk; fig_pos_err; fig_estpred_std];
 end
 %--------------------------------------------------------------------------
 function fig_array_out = removeClosedFigs(fig_array)

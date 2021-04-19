@@ -27,6 +27,11 @@ function option = plotTraj(output,solvername,option)
     [Rot(2,1),Rot(2,2),Rot(3,2)] = ecef2ned(NED_origin(1),NED_origin(2)+1,NED_origin(3),p1_lla(1),p1_lla(2),p1_lla(3),wgs84);
     [Rot(1,3),Rot(2,3),Rot(3,3)] = ecef2ned(NED_origin(1),NED_origin(2),NED_origin(3)+1,p1_lla(1),p1_lla(2),p1_lla(3),wgs84);
     
+%     ECEF_frame = true;
+%     if ECEF_frame == true
+%         Rot = eye(3);
+%     end
+
 %     % Rotation matrix from ECEF to NED frame
 %     Rot = [0.256585082665972   0.496560105722668   0.829211768114673;
 %         0.888404726250657  -0.459061043893141  -0.000000000413696;
@@ -452,8 +457,8 @@ function option = plotTraj(output,solvername,option)
     fignum7 = getfignum(figtag7);
     figure(fignum7); clf; hold on; grid on
     xlbl_txt = strcat('Receiver time using GPS second');    
-    
-    scatter(postTime,max(abs(res(TW1)),[],1),'Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
+    max_abs_res = max(abs(res),[],1);
+    scatter(postTime,max_abs_res(TW1),'Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
     xlabel(xlbl_txt)
     ylabel('residual (m)')
     ax = [ax; findall(gcf, 'type', 'axes')];
@@ -603,30 +608,24 @@ end
 % Estimation & Predicted Covar
 %--------------------------------------------------------------------------
     
-    figtag11 = strcat("estpred_cov_",solvername);
+    figtag11 = strcat("estpred_std_",solvername);
     fignum = getfignum(figtag11);    
     fig = figure(fignum); clf; hold on; grid on
     xlbl_txt = strcat('Receiver time using GPS second');
-    legend_txt = {'predicted','estimated'};
+    legend_txt = {'computed for all epoch','prediction at each epoch'};
     
-    predicted_cov = nan(1,size(H_pos,3));
-    for page = 1:size(H_pos,3)
-        H_nan = H_pos(:,:,page);    % H contains rows of NaN
-        H  = H_nan(any(H_nan,2),:); % rows of NaN are removed
-        m  = size(H,1);
-        invYCov = eye(m)./output.p.sig_y^2; % measurement noise covariance inverse
-        predicted_cov(page) = sqrt(trace(H'*invYCov*H));
-    end 
-    estimated_cov = sqrt(pspx_cov + pspy_cov + pspz_cov);
     
-    scatter(postTime,predicted_cov(TW1),'Marker', mrkr,'MarkerEdgeColor',ps_mrk_clr,'SizeData',sz);
-    scatter(postTime,estimated_cov(TW1),'Marker', mrkr,'MarkerEdgeColor',psstd_mrk_clr,'SizeData',sz);
+    sampled_std   = nanstd(output.err_LS).*ones(1,N);
+    estimated_std = sqrt(pspx_cov + pspy_cov + pspz_cov);
+    
+    scatter(postTime,sampled_std(TW1),'Marker', mrkr,'MarkerEdgeColor',ps_mrk_clr,'SizeData',sz);
+    scatter(postTime,estimated_std(TW1),'Marker', mrkr,'MarkerEdgeColor',psstd_mrk_clr,'SizeData',sz);
     ylabel('MSE, m')
     xlim(xlimits); ylim(ylimits)
     xlabel(xlbl_txt)
     
     ax = [ax; findall(gcf, 'type', 'axes')];
-    title_txt = strcat('Estimated & Predicted Covariances (',upper(solvername),')');
+    title_txt = strcat('Std. of estimation error (',upper(solvername),')');
     sgtitle(title_txt)
     legend(legend_txt); 
 %     adjustlegend(fig);

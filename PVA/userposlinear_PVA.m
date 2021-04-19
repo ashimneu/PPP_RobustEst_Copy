@@ -10,22 +10,15 @@ function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,postxhat,postxhatcovar,delta_
 %       y: m-by-1 Corrected pseudorange.
 
 %-------------------%
-% % Initialize
-% x0 = grdpos; x0(4) = 0;
-% 
-% [H_offset,~] = sys_offset(num_sys);
-% ind = find(num_sys(2:4)~=0);
-% p.ind = ind;
-% ISB = [p.ISBglo;p.ISBgal;p.ISBbds];
-% ISB_cov = [p.ISBglo_cov;p.ISBgal_cov;p.ISBbds_cov];
-% ISB = ISB(ind); ISB_cov = ISB_cov(ind);
-% 
-% xk = [x0;ISB]; % Prior
-% Pcov = [p.priorposcov;ISB_cov]; % Prior Covariance
-% xk(1:3) = xk(1:3)+sqrt(Pcov(1:3)).*randn(3,1);
-% Pcov = diag(Pcov);
+% Outliers
+num = length(cpt.corr_range); % number of measurement
+if p.genOutliers == 1
+    cpt.outliervec = genoutlier(p.outliersettings,num);
+else
+    cpt.outliervec = loadoutlier(p.i,outlierDB);
+end
 
-    
+% Measurement Selection Algorithms
 
 [pos.LS{1},msr_res.LS{1},GDOP.LS,nsv.LS,dnsv.LS,nprior.LS,dnprior.LS,postxhat.LS,postxhatcovar.LS,...
     delta_x.LS,Jydiag.LS,by.LS{1},H_pos.LS{1}]= LSlinear_PVA(p,cpt,grdpos,x_prior.LS,P_prior.LS);
@@ -77,5 +70,6 @@ for idx = 1:p.LSSn
     LSSlinear_PVA(p,cpt,grdpos,x_prior.LSS{idx},P_prior.LSS{idx},p.LSSLambda(idx));
 end
 end
+
 
 end

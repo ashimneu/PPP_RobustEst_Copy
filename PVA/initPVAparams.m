@@ -1,4 +1,4 @@
-function p = initializePVApararmeters(p)
+function p = initPVAparams(p)
     n = p.n;
     p.x_prior = [p.x_v_prior; p.x_c_prior];
     p.P_prior = diag([p.pva_cov_prior; p.clk_cov_prior]);

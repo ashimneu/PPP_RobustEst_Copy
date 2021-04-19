@@ -46,11 +46,11 @@ p.state_PVA = zeros(3+3+3+p.sys_num+1,1); % P;V;A;tr+ISBs;dr(1X1)
 p.pva_siga = 0.005; %1;
 p.pva_sigc = 15;
 p.pva_sigdc = 0.1; %2;
-p.pva_ISB_E = 0.0002; %1; 
-p.pva_ISB_B = 0.004; %1;
+p.pva_ISB_E = 0.005; %1; 
+p.pva_ISB_B = 0.005; %1;
 % p.P_cov = ones(3+3+3+p.sys_num+1,1);
 % p.P_cov(10:12) = p.pva_sigc^2;
-p.P_cov = [1.*O3; 0.09.*O3; 0.016.*O3; 10^2; 0.01^2; 0.01^2; .1];
+p.P_cov = [0.1.*O3; 0.01.*O3; 0.01.*O3; 10^2; 0.002^2; 0.003^2; .1];
 p.P_cov = diag(p.P_cov);
 p.PVA_enable = 1;
 % p.P_cov(end) = p.pva_sigc^2;
@@ -66,14 +66,14 @@ p.sig_y  = 0.951; % [meters] PPP pseudorange residual measurement covar
 p.sig_y_dop  = 0.25; % [m/s] PPP doppler residual measurement covar
 % Enable Measurement selection Algorithms
 p.eb_LTS  = 0;
-p.eb_RAPS = 0;
+p.eb_RAPS = 1;
 p.eb_TD   = 0;
 p.eb_MShb = 0;
 p.eb_MStk = 0;
 p.eb_LSS  = 0;
 % Declare Algo. parameters
-p.LTSOption = [1 2 3 4 5]; % 1 =default (check LTSlinear.m)
-p.RAPSEps = [0.5 99.5, 0.4 99.9]; %; 1 99.5]; % alpha & beta
+p.LTSOption = [2 3]; % 1 =default (check LTSlinear.m)
+p.RAPSEps = [0.5 99.5; 0.4 99.9]; %; 1 99.5]; % alpha & beta
 p.TDLambda  = [2.5 3 3.5];
 p.MShbConst = [1.345];
 p.MStkConst = [4.685];
@@ -98,7 +98,7 @@ p.lam_cdrift = 1.0;
 % process noise std
 p.sig_p = 0; 
 p.sig_v = 0; 
-p.sig_a = 0.0002;
+p.sig_a = 0.003; %0.0002;
 p.sig_cbias  = 2; % 0.5
 p.sig_cdrift = 0.1;
 p.sig_ISB_E = 0.0002; 
@@ -107,20 +107,22 @@ p.sig_ISB_B = 0.004;
 p.x_v_prior = [p.Grdpos.pos(:,1); Z3; Z3];
 p.x_c_prior = [350542.5; 0.14; 10; 142];
 % initial covar
-p.pva_cov_prior = [1.*O3; 0.1.*O3; 0.001.*O3];
-p.clk_cov_prior = [10^2; 0.05^2; 0.05^2; .1];
-p = initializePVApararmeters(p);
+p.pva_cov_prior = [0.1^2.*O3; 0.01^2.*O3; 0.002^2.*O3];
+p.clk_cov_prior = [10^2; 0.01^2; 0.005^2; .1];
+p = initPVAparams(p);
+%--------------------------------%
+p = initOutlierpararms(p);
 %--------------------------------%
 [p,obs] = load_PPP_corr(p,data_base,IGS_name,eph,obs,USTEC,code_bia);
 %-------------%
 output = compute_gnss_ecef(p,eph,obs);
-% save('output_PPP_PVA_Mar28_2.mat','output')
+% save('output_PPP_PVA_Apr18_2.mat','output','-v7.3');
 
 %%
 clc
 opt.movingrover = 0; % For rover: 0 = stationary, 1 = moving
-opt.LTSn_i  = 2;
-opt.RAPSn_i = 1; 
+opt.LTSn_i  = 5;
+opt.RAPSn_i = 2; 
 opt.TDn_i   = 3;
 opt.MShbn_i = 1;
 opt.MStkn_i = 1;
@@ -129,9 +131,10 @@ opt.axes2link = 'x';
 opt.ax = [];
 opt.frame = "ned";
 % opt = ploterrgdopscat(output,"kf",opt);
-% opt = plotTraj(output,"kf",opt);
+opt = plotTraj(output,"kf",opt);
 % opt = plotTraj(output,"raps",opt);
-% linkaxes2(opt);
+opt = plotErrorStd(output,opt);
+linkaxes2(opt);
 metrics(output,opt)
 % CDF_curves = ploterrcdf(output,opt);
 
@@ -165,7 +168,7 @@ fprintf('Doppler residual MAD = %2.3f \n',mad(res_dop,1))
 end
 
 %%
-if false
+if true
 Time = output.gpst; % p.t;
 figure
 scatter(Time,output.err,'.')
