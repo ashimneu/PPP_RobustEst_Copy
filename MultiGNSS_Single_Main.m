@@ -11,7 +11,9 @@ addpath('eph')
 addpath('pos')
 addpath('corr')
 addpath('PVA')
+addpath('PVA/multisim')
 addpath('pos/LIBRA')
+addpath('PVA/outliers')
 %--------------------------------%
 % Pick the Data Number
 initpath = 'data/';
@@ -63,13 +65,13 @@ p.ISBglo = 0.45; p.ISBglo_cov = 0.257^2; % Inter system bias GPS to GLO
 p.ISBgal = 0.45; p.ISBgal_cov = 0.257^2; % Inter system bias GPS to GAL
 p.ISBbds = 0.92; p.ISBbds_cov = 0.257^2; % Inter system bias GPS to BDS 
 p.sig_y  = 0.951; % [meters] PPP pseudorange residual measurement covar
-p.sig_y_dop  = 0.25; % [m/s] PPP doppler residual measurement covar
+p.sig_y_dop = 0.25; % [m/s] PPP doppler residual measurement covar
 % Enable Measurement selection Algorithms
-p.eb_LTS  = 0;
+p.eb_LTS  = 1;
 p.eb_RAPS = 1;
-p.eb_TD   = 0;
-p.eb_MShb = 0;
-p.eb_MStk = 0;
+p.eb_TD   = 1;
+p.eb_MShb = 1;
+p.eb_MStk = 1;
 p.eb_LSS  = 0;
 % Declare Algo. parameters
 p.LTSOption = [2 3]; % 1 =default (check LTSlinear.m)
@@ -111,27 +113,34 @@ p.pva_cov_prior = [0.1^2.*O3; 0.01^2.*O3; 0.002^2.*O3];
 p.clk_cov_prior = [10^2; 0.01^2; 0.005^2; .1];
 p = initPVAparams(p);
 %--------------------------------%
-p = initOutlierpararms(p);
+p.eb_outlier  = 0;
+p.genOutlier  = 1;
+p.saveOutlier = 0;
+p.multisim_outliervar = "mean"; % mean/width/count
+p = initOutlierparam(p);
 %--------------------------------%
 [p,obs] = load_PPP_corr(p,data_base,IGS_name,eph,obs,USTEC,code_bia);
 %-------------%
-output = compute_gnss_ecef(p,eph,obs);
-% save('output_PPP_PVA_Apr18_2.mat','output','-v7.3');
-
+outputcell = compute_gnss_ecef_multisim(p,eph,obs);
+output = outputcell{1};
+save('outputcell_Apr25_outliermean.mat','outputcell','-v7.3');
 %%
+compare_err_std(outputcell,opt,"mean","std")
+compare_err_std(outputcell,opt,"count","std")
+
 clc
 opt.movingrover = 0; % For rover: 0 = stationary, 1 = moving
-opt.LTSn_i  = 5;
+opt.LTSn_i  = 2;
 opt.RAPSn_i = 2; 
 opt.TDn_i   = 3;
 opt.MShbn_i = 1;
 opt.MStkn_i = 1;
 opt.LSSn_i  = 0;
-opt.axes2link = 'x'; 
+opt.axes2link ='x'; 
 opt.ax = [];
 opt.frame = "ned";
 % opt = ploterrgdopscat(output,"kf",opt);
-opt = plotTraj(output,"kf",opt);
+% opt = plotTraj(output,"kf",opt);
 % opt = plotTraj(output,"raps",opt);
 opt = plotErrorStd(output,opt);
 linkaxes2(opt);
@@ -168,7 +177,7 @@ fprintf('Doppler residual MAD = %2.3f \n',mad(res_dop,1))
 end
 
 %%
-if true
+if false
 Time = output.gpst; % p.t;
 figure
 scatter(Time,output.err,'.')

@@ -53,8 +53,8 @@ for j=1:num
 end
 H_os = [H,zeros(size(H)),zeros(num,3),H_clk,zeros(num,1);
     zeros(size(H)),H,zeros(num,3),zeros(size(H_clk)),ones(num,1)];
-res_R = y_R - r - clk_bia;
-res_D = (y_D - (rv+xk(end)));
+res_R = y_R - r - clk_bia + cpt.outliervec;
+res_D = (y_D - (rv+xk(end))) + cpt.outliervec;
 
 %-----------------------%
 n       = numel(xk);
@@ -81,7 +81,7 @@ end
 
 bx   = ones(n,1);   % prior selection binary vector; use all priors
 nsv  = sum(by);     % number of measurements used
-dnsv = 2*num - nsv; % number of measurements discarded
+dnsv = sum(~by); % number of measurements discarded
 nprior  = n;        % number of priors used
 dnprior = 0;        % number of priors discarded
 
@@ -133,7 +133,7 @@ residual = cb - Ab*dx ;
 msr_res  = residual(1:2*num);
 
 % Compute GDOP
-Hbar_psr = remove0colrow(PhiH(1:num,1:3),"column");;
+Hbar_psr = remove0colrow(PhiH(1:num,1:3),"column");
 GDOP = sqrt(trace((Hbar_psr'*iR_psr*Hbar_psr)^(-1)));
 
 end

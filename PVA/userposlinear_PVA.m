@@ -1,4 +1,5 @@
-function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,postxhat,postxhatcovar,delta_x,Jydiag,by,H_pos] = ...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,postxhat,postxhatcovar,...
+    delta_x,Jydiag,by,H_pos,outliervec,outlierbin] = ...
     userposlinear_PVA(p,cpt,grdpos,x_prior,P_prior)
 % This is solver for computing user position, receiver clock
 % bias, satellite system offset.
@@ -10,16 +11,29 @@ function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,postxhat,postxhatcovar,delta_
 %       y: m-by-1 Corrected pseudorange.
 
 %-------------------%
-% Outliers
+
 num = length(cpt.corr_range); % number of measurement
-if p.genOutliers == 1
-    cpt.outliervec = genoutlier(p.outliersettings,num);
+if p.eb_outlier == 1
+    if p.genOutlier == 1        
+        % generate outliers for this simulation
+        [cpt.outliervec,cpt.outlierbin] = genoutlier(p.outlierparam,num);
+    else
+        cpt.outliervec = p.outliervec{p.i}; % load outliers for this dataset
+        cpt.outlierbin = p.outlierbin{p.i}; % load outliers for this dataset
+    end
 else
-    cpt.outliervec = loadoutlier(p.i,outlierDB);
+    cpt.outliervec = zeros(num,1);
+    cpt.outlierbin = zeros(num,1);
 end
 
-% Measurement Selection Algorithms
+outliervec = cpt.outliervec;
+outlierbin = cpt.outlierbin;
 
+% % corrupt measurements with outliers
+% cpt.corr_range = cpt.corr_range + cpt.outliervec;
+% cpt.dp_range   = cpt.dp_range + cpt.outliervec;
+
+%%%%%%%%%%%%%%%%%%%%%%%% Measurement Selection Algorithms %%%%%%%%%%%%%%%%%
 [pos.LS{1},msr_res.LS{1},GDOP.LS,nsv.LS,dnsv.LS,nprior.LS,dnprior.LS,postxhat.LS,postxhatcovar.LS,...
     delta_x.LS,Jydiag.LS,by.LS{1},H_pos.LS{1}]= LSlinear_PVA(p,cpt,grdpos,x_prior.LS,P_prior.LS);
 
@@ -63,13 +77,13 @@ for idx = 1:p.MStkn
 end
 end
         
-if p.eb_LSS == 1
-for idx = 1:p.LSSn
-    [pos.LSS{idx},msr_res.LSS{idx},GDOP.LSS(idx),nsv.LSS(idx),dnsv.LSS(idx),nprior.LSS(idx),...
-    dnprior.LSS(idx),postxhat.LSS{idx},postxhatcovar.LSS{idx},delta_x.LSS{idx},Jydiag.LSS{idx},by.LSS{idx},H_pos.LSS{idx}]= ...
-    LSSlinear_PVA(p,cpt,grdpos,x_prior.LSS{idx},P_prior.LSS{idx},p.LSSLambda(idx));
-end
-end
+% if p.eb_LSS == 1
+% for idx = 1:p.LSSn
+%     [pos.LSS{idx},msr_res.LSS{idx},GDOP.LSS(idx),nsv.LSS(idx),dnsv.LSS(idx),nprior.LSS(idx),...
+%     dnprior.LSS(idx),postxhat.LSS{idx},postxhatcovar.LSS{idx},delta_x.LSS{idx},Jydiag.LSS{idx},by.LSS{idx},H_pos.LSS{idx}]= ...
+%     LSSlinear_PVA(p,cpt,grdpos,x_prior.LSS{idx},P_prior.LSS{idx},p.LSSLambda(idx));
+% end
+% end
 
 
 end

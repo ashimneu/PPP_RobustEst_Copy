@@ -52,8 +52,8 @@ for j=1:num
 end
 H_os = [H,zeros(size(H)),zeros(num,3),H_clk,zeros(num,1);
     zeros(size(H)),H,zeros(num,3),zeros(size(H_clk)),ones(num,1)];
-res_R = y_R - r - clk_bia;
-res_D = (y_D - (rv+xk(end)));
+res_R = y_R - r - clk_bia + cpt.outliervec;
+res_D = (y_D - (rv+xk(end))) + cpt.outliervec;
 %-----------------------%
 yCov = blkdiag(p.sig_y^2.*eye(num),p.sig_y_dop^2.*eye(num)); % noise covariance
 E_R  = chol(yCov^(-1));

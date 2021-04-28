@@ -301,6 +301,7 @@ for i = 1:N
                     log.msr_count = log.msr_count + 1; % number of measurement updates
                     got_new_xhat_posterior = true;
                     log.postTime(i+1) = i; % GPS time when measurement update process is executed.
+                    
                     %-----------------------PVA---------------------------%
                     x_post.LS = postxhat.LS;   
                     P_post.LS = postcovar.LS;

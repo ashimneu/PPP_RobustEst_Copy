@@ -495,12 +495,15 @@ for i = 1:p.inval:log.NN
 %                         P_prior.LTS{1} = p.P_cov_1;
 %                     end
                     
-                    [re_pos,msr_res,cpt.GDOP,cpt.nsv,cpt.dnsv,cpt.nprior,cpt.dnprior,postxhat,postcovar,delta_x,Jydiag,by,H_pos] = ...
+                    [re_pos,msr_res,cpt.GDOP,cpt.nsv,cpt.dnsv,cpt.nprior,cpt.dnprior,postxhat,...
+                        postcovar,delta_x,Jydiag,by,H_pos,cpt.outliervec,cpt.outlierbin] = ...
                     userposlinear_PVA(p,cpt,grdpos,x_prior,P_prior);
                     log.msr_count = log.msr_count + 1; % number of measurement updates
                     got_new_xhat_posterior = true;
                     log.postTime(i+1) = i; % GPS time when measurement update process is executed.
-                    
+                    %------------Save Generated Outliers to Database------%
+                    log.outliervec{i} = cpt.outliervec;
+                    log.outlierbin{i} = cpt.outlierbin;
                     %-----------------------PVA---------------------------%
                     x_post.LS = postxhat.LS;   
                     P_post.LS = postcovar.LS;
@@ -676,6 +679,10 @@ for i = 1:p.inval:log.NN
 
     end
     
+end
+
+if p.genOutlier == 1 && p.saveOutlier == 1
+    saveoutlier(p.outlierdbpath,log.outliervec,log.outlierbin,p.outlierparam);
 end
 
 log.err_LS  = err_LS; log.hor_err_LS = hor_err_LS;

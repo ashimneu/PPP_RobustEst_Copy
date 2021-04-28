@@ -59,7 +59,8 @@ function [] = metrics(output,option)
         [ctf.GDOPLSS,ctf.idx_GDOPLSS,~,ctf.fsum_GDOPLSS] = cutoff(GDOPLSS(LSSn_i,:),GDOP_cutoff);
     end
     
-    N = size(err_LS(1,:),2);
+%     N = size(err_LS(1,:),2);
+    N = output.NN;
     fprintf('\nTotal epochs = %1.0f \n',N)
 
     % Error Standard Deviation
@@ -100,7 +101,7 @@ function [] = metrics(output,option)
     if output.p.eb_MStk, pred_acc_MStk = round(sum(err_MStk(MStkn_i,:) <= GDOPMStk(MStkn_i,:))/N,sfig)*100; end
     if output.p.eb_LSS,  pred_acc_LSS  = round(sum(err_LSS(LSSn_i,:)  <= GDOPLSS(LSSn_i,:))/N,sfig)*100;   end
     
-    fprintf('\nFraction of epochs where \npos error were cutoff at %2.1f meters. \n',err_cutoff)
+    fprintf('\nFraction of epochs where \npos error > %2.1f meters. \n',err_cutoff)
     fprintf('LS   = %3.1f %%\n', ctf.fsum_err_LS/N*100)
     if output.p.eb_LTS,  fprintf('LTS  = %3.1f %%\n', ctf.fsum_err_LTS/N*100),  end
     if output.p.eb_TD,   fprintf('TD   = %3.1f %%\n', ctf.fsum_err_TD/N*100),   end
