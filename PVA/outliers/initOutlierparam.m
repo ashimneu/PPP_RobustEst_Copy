@@ -1,4 +1,7 @@
 function p = initOutlierparam(p)
+
+p.multisim = 0;
+
 if p.eb_outlier == 1
     
     p.multisim = 1;
@@ -31,7 +34,7 @@ if p.eb_outlier == 1
     end
     
     % Multi simulation outlier parameter list 
-    p.outlierparam.meanlist  = 0.5.*[0.5,1,2,3,4,5]; %#ok<*NBRAK>
+    p.outlierparam.meanlist  = [1:1:20]; %#ok<*NBRAK>
     p.outlierparam.widthlist = 0.1.*[1:5];
     p.outlierparam.countlist = 1:8;    
     

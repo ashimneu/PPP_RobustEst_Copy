@@ -1,4 +1,4 @@
-function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,by,H_pos_vel]...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,by,H_pos_vel,res_std]...
     = RAPSlinear_PVA_useallprior(p,cpt,grdpos,x_prior,P_prior,epsab)
 ind_s = [1 2 3];
 xk = [x_prior(1:9);x_prior(9+ind_s);x_prior(13)]; % point of linearization
@@ -77,6 +77,8 @@ Jl = diag(J_lwr_bound);
 
 %--------------------------------------------------------------------------
 yCov = blkdiag(p.sig_y^2.*eye(num),p.sig_y_dop^2.*eye(num));
+resCov = H_os*P_prior*H_os' + yCov; % Section VI:A, 1st sentence.
+res_std = sqrt(diag(resCov));
 E_R   = chol(yCov^(-1));
 E_P   = chol(P_prior^(-1));
 n     = numel(xk);

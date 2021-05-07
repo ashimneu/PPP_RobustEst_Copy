@@ -1,4 +1,4 @@
-function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,delta_x,Jydiag,by,H_pos_vel] = ...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,delta_x,Jydiag,by,H_pos_vel,res_std] = ...
     LSlinear_PVA(p,cpt,grdpos,x_prior,P_prior_in)
 
  
@@ -68,6 +68,9 @@ H_os = [H,zeros(size(H)),zeros(num,3),H_clk,zeros(num,1);
 res_R = y_R - r - clk_bia + cpt.outliervec;
 res_D = (y_D - (rv+xk(end))) + cpt.outliervec;
 yCov = blkdiag(p.sig_y^2.*eye(num),p.sig_y_dop^2.*eye(num)); % noise covariance
+resCov = H_os*P_prior_in*H_os' + yCov; % Section VI:A, 1st sentence.
+res_std = sqrt(diag(resCov));
+
 %  Innovation Covariance
 S = H_os*Pcov*H_os' + yCov;
 % Optimal Kalman Gain

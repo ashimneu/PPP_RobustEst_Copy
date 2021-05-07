@@ -1,4 +1,4 @@
-function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,wy,H_pos_vel] = ...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,wy,H_pos_vel,res_std] = ...
     MSHuberlinear_PVA_useallprior(p,cpt,grdpos,x_prior,P_prior,HuberConst)
 ind_s = [1 2 3];
 xk = [x_prior(1:9);x_prior(9+ind_s);x_prior(13)]; % point of linearization
@@ -56,6 +56,8 @@ res_R = y_R - r - clk_bia + cpt.outliervec;
 res_D = (y_D - (rv+xk(end))) + cpt.outliervec;
 %-----------------------%
 yCov = blkdiag(p.sig_y^2.*eye(num),p.sig_y_dop^2.*eye(num)); % noise covariance
+resCov = H_os*P_prior*H_os' + yCov; % Section VI:A, 1st sentence.
+res_std = sqrt(diag(resCov));
 E_R  = chol(yCov^(-1));
 E_P  = chol(Pcov^(-1));
 n     = numel(xk);

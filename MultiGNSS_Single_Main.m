@@ -100,7 +100,7 @@ p.lam_cdrift = 1.0;
 % process noise std
 p.sig_p = 0; 
 p.sig_v = 0; 
-p.sig_a = 0.003; %0.0002;
+p.sig_a = 0.003; % 0.0002;
 p.sig_cbias  = 2; % 0.5
 p.sig_cdrift = 0.1;
 p.sig_ISB_E = 0.0002; 
@@ -113,7 +113,7 @@ p.pva_cov_prior = [0.1^2.*O3; 0.01^2.*O3; 0.002^2.*O3];
 p.clk_cov_prior = [10^2; 0.01^2; 0.005^2; .1];
 p = initPVAparams(p);
 %--------------------------------%
-p.eb_outlier  = 0;
+p.eb_outlier  = 1;
 p.genOutlier  = 1;
 p.saveOutlier = 0;
 p.multisim_outliervar = "mean"; % mean/width/count
@@ -123,11 +123,8 @@ p = initOutlierparam(p);
 %-------------%
 outputcell = compute_gnss_ecef_multisim(p,eph,obs);
 output = outputcell{1};
-save('outputcell_Apr25_outliermean.mat','outputcell','-v7.3');
+save('outputcell_May_outliermean_1thru20.mat','outputcell','-v7.3');
 %%
-compare_err_std(outputcell,opt,"mean","std")
-compare_err_std(outputcell,opt,"count","std")
-
 clc
 opt.movingrover = 0; % For rover: 0 = stationary, 1 = moving
 opt.LTSn_i  = 2;
@@ -142,10 +139,16 @@ opt.frame = "ned";
 % opt = ploterrgdopscat(output,"kf",opt);
 % opt = plotTraj(output,"kf",opt);
 % opt = plotTraj(output,"raps",opt);
-opt = plotErrorStd(output,opt);
-linkaxes2(opt);
+
+% opt = plotErrorStd(output,opt);
+
 metrics(output,opt)
 % CDF_curves = ploterrcdf(output,opt);
+
+compare_err_std(outputcell,opt,"mean","std")
+
+linkaxes2(opt);
+% compare_err_std(outputcell,opt,"count","std")
 
 %%
 if false

@@ -59,6 +59,7 @@ nsvLS  = NaN(1,N);
 dnsvLS = NaN(1,N); 
 npriorLS  = NaN(1,N); 
 dnpriorLS = NaN(1,N);
+res_stdLStemp = NaN(2*max_num_sv,N);
 
 err_LTS = NaN(p.LTSn,N);        hor_err_LTS = NaN(p.LTSn,N);  
 ned_err_LTS = NaN(p.LTSn,N);    GDOPLTS = NaN(p.LTSn,N);
@@ -67,6 +68,7 @@ nsvLTS = NaN(p.LTSn,N);         dnsvLTS = NaN(p.LTSn,N);
 npriorLTS = NaN(p.LTSn,N);      dnpriorLTS = NaN(p.LTSn,N);
 byLTStemp = NaN(2*max_num_sv*p.LTSn,N);
 H_posLTStemp = NaN(2*max_num_sv*p.LTSn,6,N);
+res_stdLTStemp = NaN(2*max_num_sv*p.LTSn,N);
 
 err_RAPS = NaN(p.RAPSn,N);      hor_err_RAPS = NaN(p.RAPSn,N); 
 ned_err_RAPS = NaN(p.RAPSn,N);  GDOPRAPS = NaN(p.RAPSn,N);
@@ -75,6 +77,7 @@ nsvRAPS = NaN(p.RAPSn,N);       dnsvRAPS = NaN(p.RAPSn,N);
 npriorRAPS = NaN(p.RAPSn,N);    dnpriorRAPS= NaN(p.RAPSn,N);
 byRAPStemp = NaN(2*max_num_sv*p.RAPSn,N);
 H_posRAPStemp = NaN(2*max_num_sv*p.RAPSn,6,N);
+res_stdRAPStemp = NaN(2*max_num_sv*p.RAPSn,N);
 
 err_TD = NaN(p.TDn,N);          hor_err_TD = NaN(p.TDn,N); 
 ned_err_TD = NaN(p.TDn,N);      GDOPTD = NaN(p.TDn,N);
@@ -83,6 +86,7 @@ nsvTD = NaN(p.TDn,N);           dnsvTD = NaN(p.TDn,N);
 npriorTD = NaN(p.TDn,N);        dnpriorTD= NaN(p.TDn,N);
 byTDtemp = NaN(2*max_num_sv*p.TDn,N);
 H_posTDtemp = NaN(2*max_num_sv*p.TDn,6,N);
+res_stdTDtemp = NaN(2*max_num_sv*p.TDn,N);
 
 err_MShb = NaN(p.MShbn,N);      hor_err_MShb = NaN(p.MShbn,N); 
 ned_err_MShb = NaN(p.MShbn,N);  GDOPMShb = NaN(p.MShbn,N);
@@ -91,6 +95,7 @@ nsvMShb = NaN(p.MShbn,N);       dnsvMShb = NaN(p.MShbn,N);
 npriorMShb = NaN(p.MShbn,N);    dnpriorMShb= NaN(p.MShbn,N);
 byMShbtemp = NaN(2*max_num_sv*p.MShbn,N);
 H_posMShbtemp = NaN(2*max_num_sv*p.MShbn,6,N);
+res_stdMShbtemp = NaN(2*max_num_sv*p.MShbn,N);
 
 err_MStk = NaN(p.MStkn,N);      hor_err_MStk = NaN(p.MStkn,N); 
 ned_err_MStk = NaN(p.MStkn,N);  GDOPMStk = NaN(p.MStkn,N);
@@ -99,6 +104,7 @@ nsvMStk = NaN(p.MStkn,N);       dnsvMStk = NaN(p.MStkn,N);
 npriorMStk = NaN(p.MStkn,N);    dnpriorMStk= NaN(p.MStkn,N);
 byMStktemp = NaN(2*max_num_sv*p.MStkn,N);
 H_posMStktemp = NaN(2*max_num_sv*p.MStkn,6,N);
+res_stdMStktemp = NaN(2*max_num_sv*p.MStkn,N);
 
 err_LSS = NaN(p.LSSn,N);        hor_err_LSS = NaN(p.LSSn,N); 
 ned_err_LSS = NaN(p.LSSn,N);    GDOPLSS = NaN(p.LSSn,N);
@@ -107,6 +113,7 @@ nsvLSS = NaN(p.LSSn,N);         dnsvLSS = NaN(p.LSSn,N);
 npriorLSS = NaN(p.LSSn,N);      dnpriorLSS= NaN(p.LSSn,N);
 byLSStemp = NaN(2*max_num_sv*p.LSSn,N);
 H_posLSStemp = NaN(2*max_num_sv*p.LSSn,6,N);
+res_stdLSStemp = NaN(2*max_num_sv*p.LSSn,N);
 
 % For EKF -----------------------------
 % state vector & covar matrix estimates at propagation steps
@@ -496,7 +503,7 @@ for i = 1:p.inval:log.NN
 %                     end
                     
                     [re_pos,msr_res,cpt.GDOP,cpt.nsv,cpt.dnsv,cpt.nprior,cpt.dnprior,postxhat,...
-                        postcovar,delta_x,Jydiag,by,H_pos,cpt.outliervec,cpt.outlierbin] = ...
+                    postcovar,delta_x,Jydiag,by,H_pos,cpt.outliervec,cpt.outlierbin,cpt.res_std] = ...
                     userposlinear_PVA(p,cpt,grdpos,x_prior,P_prior);
                     log.msr_count = log.msr_count + 1; % number of measurement updates
                     got_new_xhat_posterior = true;
@@ -579,60 +586,61 @@ for i = 1:p.inval:log.NN
                     end
 %--------------------------------------------------------------------------                    
                     [ned_err_LS(:,i),hor_err_LS(:,i),err_LS(:,i),GDOPLS(:,i),...
-                    nsvLS(i),dnsvLS(i),npriorLS(i),dnpriorLS(i),resLStemp(:,i),byLStemp(:,i),H_posLStemp(:,:,i)] = ...
+                    nsvLS(i),dnsvLS(i),npriorLS(i),dnpriorLS(i),resLStemp(:,i),...
+                    byLStemp(:,i),H_posLStemp(:,:,i),res_stdLStemp(:,1)] = ...
                     save_errNorm_res_GDOP(1,grdpos,re_pos.LS,cpt.GDOP.LS,...
                     cpt.nsv.LS,cpt.dnsv.LS,cpt.nprior.LS,cpt.dnprior.LS,...
-                    max_num_sv,ind_mark,msr_res.LS,by.LS,H_pos.LS);
+                    max_num_sv,ind_mark,msr_res.LS,by.LS,H_pos.LS,cpt.res_std.LS);
 
                                       
                     if p.eb_LTS == 1
                         [ned_err_LTS(:,i),hor_err_LTS(:,i),err_LTS(:,i),GDOPLTS(:,i),...
                         nsvLTS(:,i),dnsvLTS(:,i),npriorLTS(:,i),dnpriorLTS(:,i),...
-                        resLTStemp(:,i),byLTStemp(:,i),H_posLTStemp(:,:,i)] = save_errNorm_res_GDOP(p.LTSn,...
+                        resLTStemp(:,i),byLTStemp(:,i),H_posLTStemp(:,:,i),res_stdLTStemp(:,1)] = save_errNorm_res_GDOP(p.LTSn,...
                         grdpos,re_pos.LTS,cpt.GDOP.LTS,cpt.nsv.LTS,cpt.dnsv.LTS,...
-                        cpt.nprior.LTS,cpt.dnprior.LTS,max_num_sv,ind_mark,msr_res.LTS,by.LTS,H_pos.LTS);                                                
+                        cpt.nprior.LTS,cpt.dnprior.LTS,max_num_sv,ind_mark,msr_res.LTS,by.LTS,H_pos.LTS,cpt.res_std.LTS);                                                
                     end
                     
                     if p.eb_RAPS == 1 
                         [ned_err_RAPS(:,i),hor_err_RAPS(:,i),err_RAPS(:,i),GDOPRAPS(:,i),...
                         nsvRAPS(:,i),dnsvRAPS(:,i),npriorRAPS(:,i),dnpriorRAPS(:,i),...
-                        resRAPStemp(:,i),byRAPStemp(:,i),H_posRAPStemp(:,:,i)] = save_errNorm_res_GDOP(p.RAPSn,...
+                        resRAPStemp(:,i),byRAPStemp(:,i),H_posRAPStemp(:,:,i),res_stdRAPStemp(:,1)] = save_errNorm_res_GDOP(p.RAPSn,...
                         grdpos,re_pos.RAPS,cpt.GDOP.RAPS,cpt.nsv.RAPS,cpt.dnsv.RAPS,...
-                        cpt.nprior.RAPS,cpt.dnprior.RAPS,max_num_sv,ind_mark,msr_res.RAPS,by.RAPS,H_pos.RAPS);        
+                        cpt.nprior.RAPS,cpt.dnprior.RAPS,max_num_sv,ind_mark,msr_res.RAPS,by.RAPS,H_pos.RAPS,cpt.res_std.RAPS);        
                     end
                     
                     if p.eb_TD == 1
                         [ned_err_TD(:,i),hor_err_TD(:,i),err_TD(:,i),GDOPTD(:,i),...
                         nsvTD(:,i),dnsvTD(:,i),npriorTD(:,i),dnpriorTD(:,i),...
-                        resTDtemp(:,i),byTDtemp(:,i),H_posTDtemp(:,:,i)] = save_errNorm_res_GDOP(p.TDn,...
+                        resTDtemp(:,i),byTDtemp(:,i),H_posTDtemp(:,:,i),res_stdTDtemp(:,1)] = save_errNorm_res_GDOP(p.TDn,...
                         grdpos,re_pos.TD,cpt.GDOP.TD,cpt.nsv.TD,cpt.dnsv.TD,...
-                        cpt.nprior.TD,cpt.dnprior.TD,max_num_sv,ind_mark,msr_res.TD,by.TD,H_pos.TD);                                           
+                        cpt.nprior.TD,cpt.dnprior.TD,max_num_sv,ind_mark,msr_res.TD,by.TD,H_pos.TD,cpt.res_std.TD);                                           
                     end
                     
                     if p.eb_MShb == 1                        
                         [ned_err_MShb(:,i),hor_err_MShb(:,i),err_MShb(:,i),GDOPMShb(:,i),...
                         nsvMShb(:,i),dnsvMShb(:,i),npriorMShb(:,i),dnpriorMShb(:,i),...
-                        resMShbtemp(:,i),byMShbtemp(:,i),H_posMShbtemp(:,:,i)] = ...
+                        resMShbtemp(:,i),byMShbtemp(:,i),H_posMShbtemp(:,:,i),res_stdMShbtemp(:,1)] = ...
                         save_errNorm_res_GDOP(p.MShbn,grdpos,re_pos.MShb,...
                         cpt.GDOP.MShb,cpt.nsv.MShb,cpt.dnsv.MShb,cpt.nprior.MShb,...
-                        cpt.dnprior.MShb,max_num_sv,ind_mark,msr_res.MShb,by.MShb,H_pos.MShb);                                            
+                        cpt.dnprior.MShb,max_num_sv,ind_mark,msr_res.MShb,by.MShb,H_pos.MShb,cpt.res_std.MShb);                                            
                     end
                     
                     if p.eb_MStk == 1
                         [ned_err_MStk(:,i),hor_err_MStk(:,i),err_MStk(:,i),GDOPMStk(:,i),...
                         nsvMStk(:,i),dnsvMStk(:,i),npriorMStk(:,i),dnpriorMStk(:,i),...
-                        resMStktemp(:,i),byMStktemp(:,i),H_posMStktemp(:,:,i)] = save_errNorm_res_GDOP(p.MStkn,...
+                        resMStktemp(:,i),byMStktemp(:,i),H_posMStktemp(:,:,i),res_stdMStktemp(:,1)] = save_errNorm_res_GDOP(p.MStkn,...
                         grdpos,re_pos.MStk,cpt.GDOP.MStk,cpt.nsv.MStk,cpt.dnsv.MStk,...
-                        cpt.nprior.MStk,cpt.dnprior.MStk,max_num_sv,ind_mark,msr_res.MStk,by.MStk,H_pos.MStk);                        
+                        cpt.nprior.MStk,cpt.dnprior.MStk,max_num_sv,ind_mark,msr_res.MStk,by.MStk,H_pos.MStk,cpt.res_std.MStk);                        
                     end
                     
                     if p.eb_LSS == 1
                         [ned_err_LSS(:,i),hor_err_LSS(:,i),err_LSS(:,i),GDOPLSS(:,i),...
                         nsvLSS(:,i),dnsvLSS(:,i),npriorLSS(:,i),dnpriorLSS(:,i),...
-                        resLSStemp(:,i),byLSStemp(:,i),H_posLSStemp(:,:,i)] =...
+                        resLSStemp(:,i),byLSStemp(:,i),H_posLSStemp(:,:,i),res_stdLSStemp(:,1)] =...
                         save_errNorm_res_GDOP(p.LSSn,grdpos,re_pos.LSS,...
                         cpt.GDOP.LSS,cpt.nsv.LSS,cpt.dnsv.LSS,cpt.nprior.LSS,...
-                        cpt.dnprior.LSS,max_num_sv,ind_mark,msr_res.LSS,by.LSS,H_pos.LSS);
+                        cpt.dnprior.LSS,max_num_sv,ind_mark,msr_res.LSS,by.LSS,H_pos.LSS,cpt.res_std.LSS);
                     end
 
 %--------------------------------------------------------------------------                        
@@ -693,6 +701,7 @@ log.dnsvLS = dnsvLS;
 log.npriorLS = npriorLS;
 log.dnpriorLS = dnpriorLS;
 log.resLS = {resLStemp};
+log.res_stdLS = {res_stdLStemp};
 log.byLS = {byLStemp};
 log.H_posLS = {H_posLStemp};
 
@@ -702,6 +711,7 @@ if p.eb_RAPS == 1
         resRAPS{idx} = resRAPStemp(pointer1:pointer1+2*max_num_sv-1,:);
         byRAPS{idx} = byRAPStemp(pointer1:pointer1+2*max_num_sv-1,:);
         H_posRAPS{idx} = H_posRAPStemp(pointer1:pointer1+2*max_num_sv-1,:,:);
+        res_stdRAPS{idx} = res_stdRAPStemp(pointer1:pointer1+2*max_num_sv-1,:);
         pointer1 = pointer1 + 2*max_num_sv;
     end
     log.err_RAPS = err_RAPS; log.hor_err_RAPS = hor_err_RAPS;
@@ -712,6 +722,7 @@ if p.eb_RAPS == 1
     log.npriorRAPS = npriorRAPS;
     log.dnpriorRAPS = dnpriorRAPS;
     log.resRAPS = resRAPS;
+    log.res_stdRAPS = res_stdRAPS;
     log.byRAPS  = byRAPS;
     log.H_posRAPS = H_posRAPS;
     log.RAPSEps = p.RAPSEps; log.RAPSn = p.RAPSn;
@@ -724,6 +735,7 @@ if p.eb_LTS == 1
         resLTS{idx} = resLTStemp(pointer1:pointer1+2*max_num_sv-1,:);
         byLTS{idx}  = byLTStemp(pointer1:pointer1+2*max_num_sv-1,:);
         H_posLTS{idx} = H_posLTStemp(pointer1:pointer1+2*max_num_sv-1,:,:);
+        res_stdLTS{idx} = res_stdLTStemp(pointer1:pointer1+2*max_num_sv-1,:);
         pointer1 = pointer1 + 2*max_num_sv;
     end
     log.err_LTS = err_LTS; log.hor_err_LTS = hor_err_LTS; 
@@ -734,6 +746,7 @@ if p.eb_LTS == 1
     log.npriorLTS = npriorLTS;
     log.dnpriorLTS = dnpriorLTS;
     log.resLTS = resLTS;
+    log.res_stdLTS = res_stdLTS;
     log.byLTS = byLTS;
     log.H_posLTS = H_posLTS;
     log.LTSOption = p.LTSOption; log.LTSn = p.LTSn;
@@ -745,6 +758,7 @@ if p.eb_TD == 1
         resTD{idx} = resTDtemp(pointer1:pointer1+2*max_num_sv-1,:);
         byTD{idx}  = byTDtemp(pointer1:pointer1+2*max_num_sv-1,:);
         H_posTD{idx} = H_posTDtemp(pointer1:pointer1+2*max_num_sv-1,:,:);
+        res_stdTD{idx} = res_stdTDtemp(pointer1:pointer1+2*max_num_sv-1,:);
         pointer1 = pointer1 + 2*max_num_sv;
     end
     log.err_TD = err_TD; log.hor_err_TD = hor_err_TD; 
@@ -755,6 +769,7 @@ if p.eb_TD == 1
     log.npriorTD = npriorTD;
     log.dnpriorTD = dnpriorTD;
     log.resTD = resTD;
+    log.res_stdTD = res_stdTD;
     log.byTD = byTD;
     log.H_posTD = H_posTD;
     log.TDLambda = p.TDLambda; log.TDn = p.TDn;
@@ -766,6 +781,7 @@ if p.eb_MShb == 1
         resMShb{idx} = resMShbtemp(pointer1:pointer1+2*max_num_sv-1,:);
         byMShb{idx}  = byMShbtemp(pointer1:pointer1+2*max_num_sv-1,:);
         H_posMShb{idx} = H_posMShbtemp(pointer1:pointer1+2*max_num_sv-1,:,:);
+        res_stdMShb{idx} = res_stdMShbtemp(pointer1:pointer1+2*max_num_sv-1,:);
         pointer1 = pointer1 + 2*max_num_sv;
     end
     log.err_MShb = err_MShb; log.hor_err_MShb = hor_err_MShb; 
@@ -776,6 +792,7 @@ if p.eb_MShb == 1
     log.npriorMShb = npriorMShb;
     log.dnpriorMShb = dnpriorMShb;
     log.resMShb = resMShb;
+    log.res_stdMShb = res_stdMShb;
     log.byMShb = byMShb;
     log.H_posMShb = H_posMShb;
     log.MShbConst = p.MShbConst; log.MShbn = p.MShbn;
@@ -787,6 +804,7 @@ if p.eb_MStk == 1
         resMStk{idx} = resMStktemp(pointer1:pointer1+2*max_num_sv-1,:);
         byMStk{idx}  = byMStktemp(pointer1:pointer1+2*max_num_sv-1,:);
         H_posMStk{idx} = H_posMStktemp(pointer1:pointer1+2*max_num_sv-1,:,:);
+        res_stdMStk{idx} = res_stdMStktemp(pointer1:pointer1+2*max_num_sv-1,:);
         pointer1 = pointer1 + 2*max_num_sv;
     end
     log.err_MStk = err_MStk; log.hor_err_MStk = hor_err_MStk; 
@@ -797,6 +815,7 @@ if p.eb_MStk == 1
     log.npriorMStk = npriorMStk;
     log.dnpriorMStk = dnpriorMStk;
     log.resMStk = resMStk;
+    log.res_stdMStk = res_stdMStk;
     log.byMStk = byMStk;
     log.H_posMStk = H_posMStk;
     log.MStkConst = p.MStkConst; log.MStkn = p.MStkn;
@@ -808,6 +827,7 @@ if p.eb_LSS == 1
         resLSS{idx} = resLSStemp(pointer1:pointer1+2*max_num_sv-1,:);
         byLSS{idx}  = byLSStemp(pointer1:pointer1+2*max_num_sv-1,:);
         H_posLSS{idx} = H_posLSStemp(pointer1:pointer1+2*max_num_sv-1,:,:);
+        res_stdLSS{idx} = res_stdLSStemp(pointer1:pointer1+2*max_num_sv-1,:);
         pointer1 = pointer1 + 2*max_num_sv;
     end
     log.err_LSS = err_LSS; log.hor_err_LSS = hor_err_LSS; 
@@ -820,7 +840,9 @@ if p.eb_LSS == 1
     log.resLSS = resLSS;
     log.byLSS = byLSS;
     log.H_posLSS = H_posLSS;
-    log.LSSLambda = p.LSSLambda; log.LSSn = p.LSSn;
+    log.res_stdLSS = res_stdLSS;
+    log.LSSLambda = p.LSSLambda; 
+    log.LSSn = p.LSSn;
 end
 
 log.p = p;

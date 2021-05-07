@@ -1,4 +1,4 @@
-function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,by,H_pos_vel] = ...
+function [pos,msr_res,GDOP,nsv,dnsv,nprior,dnprior,x_post,P_post,dx,Jydiag,by,H_pos_vel,res_std] = ...
     TDlinear_PVA_useallprior(p,cpt,grdpos,x_prior,P_prior,TDLambda)
 
 ind_s = [1 2 3];
@@ -65,8 +65,8 @@ reshat  = H_os*mu_x;
 resdiff = abs([res_R; res_D] - reshat); %residual
 
 resCov = H_os*P_prior*H_os' + yCov; % Section VI:A, 1st sentence.
-sig_ri = sqrt(diag(resCov));
-ratio  = resdiff./sig_ri;
+res_std = sqrt(diag(resCov));
+ratio  = resdiff./res_std;
 Lvec   = TDLambda.*ones(2*num,1); % vector of thresholds
 by     = zeros(2*num,1); % binary decision vector
 

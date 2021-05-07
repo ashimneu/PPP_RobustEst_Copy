@@ -1,5 +1,8 @@
 function [] = compare_err_std(outputcell,option,compar_param,compar_metric)
+
 p = outputcell{1}.p;
+
+if p.eb_outlier == 1
 std_LS = [];
 std_LTS = [];
 std_RAPS = [];
@@ -147,5 +150,7 @@ if output.p.eb_MStk, legend_list = insert_legend('MStk',legend_list,-1); end
 Legend = legend(legend_list);
 xlabel(xlbl_txt)
 ylabel(ylbl_txt)
+
+end
 end
 

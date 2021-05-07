@@ -1,6 +1,6 @@
-function [ned_err_solver,hor_err_solver,err_solver,GDOP_solver,nsv,dnsv,nprior,dnprior,msr_res_solver,by_solver,H_pos_solver] =...
+function [ned_err_solver,hor_err_solver,err_solver,GDOP_solver,nsv,dnsv,nprior,dnprior,msr_res_solver,by_solver,H_pos_solver,res_std_solver] =...
     save_errNorm_res_GDOP...
-    (solver_n,Grdpose,re_pos_solver,GDOP,nsv,dnsv,nprior,dnprior,max_num_sv,ind_mark,msr_res_cells,by_cells,H_pos_cells)
+    (solver_n,Grdpose,re_pos_solver,GDOP,nsv,dnsv,nprior,dnprior,max_num_sv,ind_mark,msr_res_cells,by_cells,H_pos_cells,res_std_cells)
     
         
     err_solver     = NaN(solver_n,1); 
@@ -11,7 +11,8 @@ function [ned_err_solver,hor_err_solver,err_solver,GDOP_solver,nsv,dnsv,nprior,d
     msr_res_solver = [];
     by_solver      = [];
     H_pos_solver   = [];
-
+    res_std_solver = [];
+    
 %     msr_res_solver = NaN(max_num_sv*solver_n,1);
 %     by_solver      = NaN(max_num_sv*solver_n,1);
 %     H_pos_solver   = NaN(max_num_sv*solver_n,3);
@@ -38,6 +39,10 @@ function [ned_err_solver,hor_err_solver,err_solver,GDOP_solver,nsv,dnsv,nprior,d
         tmp_H_pos_R = NaN(max_num_sv,6); tmp_H_pos_D = NaN(max_num_sv,6);
         tmp_H_pos_R(ind_mark,:) = H_pos_cells{idx}(1:num,:); tmp_H_pos_D(ind_mark,:) = H_pos_cells{idx}(num+1:end,:);
         H_pos_solver = [H_pos_solver; tmp_H_pos_R; tmp_H_pos_D];
+        %------------------------------%
+        tmp_res_std_R = NaN(max_num_sv,1); tmp_res_std_D = NaN(max_num_sv,1);
+        tmp_res_std_R(ind_mark) = res_std_cells{idx}(1:num); tmp_res_std_D(ind_mark) = res_std_cells{idx}(num+1:end);
+        res_std_solver = [res_std_solver; tmp_res_std_R; tmp_res_std_D];
     end
 end
 
