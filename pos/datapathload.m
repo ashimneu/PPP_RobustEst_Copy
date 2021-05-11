@@ -50,7 +50,20 @@ switch(data_num)
         code_bia = 'VND_0227/CAS0MGXRAP_20210490000.BIA';
         data_base = 'VND_0227/vndlog';
         Grdpos.pos = [-2430697.699;-4704189.201;3544329.103];
-        Grdpos.t = NaN;    
+        Grdpos.t = NaN;
+    case 8
+        eph_name = 'VND_5_2/JPLM00USA_R.rnx';
+        obs_name = 'VND_5_2/VND';
+        IGS_name = 'VND_5_2/SSRA00CNE01220.21C';
+        USTEC_folderpath = 'VND_5_2/USTEC/';
+        code_bia = 'VND_5_2/CAS0MGXRAP_2021122.BIA';
+        data_base = [];
+        M  = readtable([initpath,'VND_5_2/GRD.csv']);
+        Grdpos.pos = [M.X,M.Y,M.Z]';
+        t_grd = M.UTC;
+        t_grd = datetime(t_grd,'InputFormat','HH:mm:ss.SSS MM/dd/yyyy');
+        t_grd = t_grd + seconds(18);
+        Grdpos.t = dateT2gpst(t_grd);
 end
 if ~isempty(eph_name)
     eph_name = [initpath,eph_name];

@@ -12,7 +12,7 @@ if p.eb_outlier == 1
     % generation mode 2
     if p.genOutlier == 1
         % generate & add outliers to measurement
-        p.outlierparam.mean  = 0.5;
+        p.outlierparam.mean  = 3;
         p.outlierparam.width = 0.1;
         p.outlierparam.count = 3;    
     else
@@ -36,7 +36,7 @@ if p.eb_outlier == 1
     % Multi simulation outlier parameter list 
     p.outlierparam.meanlist  = [1:1:20]; %#ok<*NBRAK>
     p.outlierparam.widthlist = 0.1.*[1:5];
-    p.outlierparam.countlist = 1:8;    
+    p.outlierparam.countlist = 1:10;    
     
 end 
 end

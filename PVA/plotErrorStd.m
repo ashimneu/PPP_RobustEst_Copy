@@ -12,8 +12,7 @@ end
 
 function option = plotErrorStdSolver(output,solvername,option)
 % INPUT:    solvername choices: td, lts, raps
-%           option struct should include:
-%           one of the properties: TDn_i, LTSn_i, RAPSn_i, default = 1
+%           option: (struct) should include either one of : TDn_i, LTSn_i, RAPSn_i, default = 1
 
 eb_GDOP = false; % enable GDOP scatter 
 eb_nsv  = true;
@@ -142,7 +141,7 @@ gpst        = output.gpst;       % x axis values
 xlimits     = [gpst(1) gpst(end)];
 ylimit_l    = [0 err_cutoff+0.1];
 ylimit_r    = [0 inf];
-Lylbl_txt   = 'MSE_y & Positioning error';
+if eb_GDOP, Lylbl_txt   = 'MSE_y & Positioning error'; else, Lylbl_txt   = 'Positioning error'; end %#ok<UNRCH>
 Rylbl_txt 	= 'No. of measurements';
 xlbl_txt    = 'Receiver time using GPS second'; %'local time (hr)';
 

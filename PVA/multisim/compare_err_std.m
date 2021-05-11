@@ -1,6 +1,7 @@
 function [] = compare_err_std(outputcell,option,compar_param,compar_metric)
 
 p = outputcell{1}.p;
+p.N = outputcell{1}.NN;
 
 if p.eb_outlier == 1
 std_LS = [];
@@ -29,7 +30,9 @@ switch lower(compar_param)
             output = outputcell{sim_idx};
             metrics_out_list{sim_idx} = metrics2(output,option);            
         end
-        xlbl_txt = strcat('artificial added outlier mean (meters)');
+        xlbl_txt = strcat('mean size of outlier added, unit: meters');
+        params_text = strcat("total epochs = ", string(p.N),",  o\_count = ",string(p.outlierparam.count));
+        
     case "count"
         simvarlist = p.outlierparam.countlist;
         metrics_out_list = cell(numel(simvarlist),1);
@@ -37,7 +40,9 @@ switch lower(compar_param)
             output = outputcell{sim_idx};
             metrics_out_list{sim_idx} = metrics2(output,option);             
         end
-        xlbl_txt = strcat('artifically added outlier count');
+        params_text = strcat("total epochs = ", string(p.N),",  o\_mean = ",string(p.outlierparam.mean)," meters");
+
+        xlbl_txt = strcat('number of added outliers');
     case "width"
 end
 
@@ -67,27 +72,6 @@ for j = 1:1:numel(metrics_out_list)
     end
 end  
 
-% switch lower(solvername)
-%     case "kf"
-%         err_std_solver = std_LS;
-%         max_err_solver = maxerr_LS;
-%     case "lts"
-%         err_std_solver = std_LTS;
-%         max_err_solver = maxerr_LTS;
-%     case "raps"
-%         err_std_solver = std_RAPS;
-%         max_err_solver = maxerr_RAPS;
-%     case "td"
-%         err_std_solver = std_TD;
-%         max_err_solver = maxerr_TD;
-%     case "mshb"
-%         err_std_solver = std_MShb;
-%         max_err_solver = maxerr_MShb;
-%     case "mstk"
-%         err_std_solver = std_MStk;
-%         max_err_solver = maxerr_MStk;
-% end
-
 figtag = strcat("compare_",compar_metric,"_",compar_param);
 fignum = getfignum(figtag);    
 figure(fignum); clf; hold on; grid on
@@ -116,7 +100,7 @@ mrkr.mshb = 'h';
 mrkr.mstk = 'p';
 
 if lower(compar_metric) == "std"
-    ylbl_txt = strcat('positoning error std. (meters)');
+    ylbl_txt = strcat('positoning error std., unit: meters');
 %     plot(simvarlist,std_LS,'-')
 %     if output.p.eb_LTS,  plot(simvarlist,std_LTS,'-');  end
 %     if output.p.eb_TD,   plot(simvarlist,std_TD,'-');   end
@@ -131,13 +115,13 @@ if lower(compar_metric) == "std"
     if output.p.eb_MStk, plot(simvarlist,std_MStk,'Marker',mrkr.mstk); end
     
 elseif lower(compar_metric) == "maxerr"
-    ylbl_txt = strcat('max positioning error (meters)');
-    plot(simvarlist,maxerr_LS,'-')
-    if output.p.eb_LTS,  plot(simvarlist,maxerr_LTS,'-');  end
-    if output.p.eb_TD,   plot(simvarlist,maxerr_TD,'-');   end
-    if output.p.eb_RAPS, plot(simvarlist,maxerr_RAPS,'-'); end
-    if output.p.eb_MShb, plot(simvarlist,maxerr_MShb,'-'); end
-    if output.p.eb_MStk, plot(simvarlist,maxerr_MStk,'-'); end
+    ylbl_txt = strcat('max positioning error, unit: meters');
+    plot(simvarlist,maxerr_LS,'Marker',mrkr.ls)
+    if output.p.eb_LTS,  plot(simvarlist,maxerr_LTS,'Marker',mrkr.lts);  end
+    if output.p.eb_TD,   plot(simvarlist,maxerr_TD,'Marker',mrkr.td);   end
+    if output.p.eb_RAPS, plot(simvarlist,maxerr_RAPS,'Marker',mrkr.raps); end
+    if output.p.eb_MShb, plot(simvarlist,maxerr_MShb,'Marker',mrkr.mshb); end
+    if output.p.eb_MStk, plot(simvarlist,maxerr_MStk,'Marker',mrkr.mstk); end
 end
 
 legend_list = insert_legend('LS',legend_list,-1); 
@@ -150,6 +134,8 @@ if output.p.eb_MStk, legend_list = insert_legend('MStk',legend_list,-1); end
 Legend = legend(legend_list);
 xlabel(xlbl_txt)
 ylabel(ylbl_txt)
+
+annotation('textbox', [0, 1, 1, 0], 'string', params_text) % displays sim params
 
 end
 end

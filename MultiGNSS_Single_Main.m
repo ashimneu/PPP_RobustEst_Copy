@@ -17,7 +17,7 @@ addpath('PVA/outliers')
 %--------------------------------%
 % Pick the Data Number
 initpath = 'data/';
-data_num = 6;
+data_num = 8;
 [eph_name,obs_name,IGS_name,data_base,code_bia,Grdpos,USTEC] = datapathload(data_num,initpath);
 %--------------------------------%
 
@@ -64,17 +64,17 @@ p.priorposcov = [2;2;2;1]; % cov([x0;clk;x_off])
 p.ISBglo = 0.45; p.ISBglo_cov = 0.257^2; % Inter system bias GPS to GLO
 p.ISBgal = 0.45; p.ISBgal_cov = 0.257^2; % Inter system bias GPS to GAL
 p.ISBbds = 0.92; p.ISBbds_cov = 0.257^2; % Inter system bias GPS to BDS 
-p.sig_y  = 0.951; % [meters] PPP pseudorange residual measurement covar
-p.sig_y_dop = 0.25; % [m/s] PPP doppler residual measurement covar
+p.sig_y  = 0.951/8; % [meters] PPP pseudorange residual measurement covar
+p.sig_y_dop = 0.25/8; % [m/s] PPP doppler residual measurement covar
 % Enable Measurement selection Algorithms
-p.eb_LTS  = 1;
-p.eb_RAPS = 1;
-p.eb_TD   = 1;
-p.eb_MShb = 1;
-p.eb_MStk = 1;
+p.eb_LTS  = 0;
+p.eb_RAPS = 0;
+p.eb_TD   = 0;
+p.eb_MShb = 0;
+p.eb_MStk = 0;
 p.eb_LSS  = 0;
 % Declare Algo. parameters
-p.LTSOption = [2 3]; % 1 =default (check LTSlinear.m)
+p.LTSOption = [1 2 3]; % 1 =default (check LTSlinear.m)
 p.RAPSEps = [0.5 99.5; 0.4 99.9]; %; 1 99.5]; % alpha & beta
 p.TDLambda  = [2.5 3 3.5];
 p.MShbConst = [1.345];
@@ -100,7 +100,7 @@ p.lam_cdrift = 1.0;
 % process noise std
 p.sig_p = 0; 
 p.sig_v = 0; 
-p.sig_a = 0.003; % 0.0002;
+p.sig_a = 0.03; % 0.0002;
 p.sig_cbias  = 2; % 0.5
 p.sig_cdrift = 0.1;
 p.sig_ISB_E = 0.0002; 
@@ -113,7 +113,7 @@ p.pva_cov_prior = [0.1^2.*O3; 0.01^2.*O3; 0.002^2.*O3];
 p.clk_cov_prior = [10^2; 0.01^2; 0.005^2; .1];
 p = initPVAparams(p);
 %--------------------------------%
-p.eb_outlier  = 1;
+p.eb_outlier  = 0;
 p.genOutlier  = 1;
 p.saveOutlier = 0;
 p.multisim_outliervar = "mean"; % mean/width/count
@@ -123,11 +123,11 @@ p = initOutlierparam(p);
 %-------------%
 outputcell = compute_gnss_ecef_multisim(p,eph,obs);
 output = outputcell{1};
-save('outputcell_May_outliermean_1thru20.mat','outputcell','-v7.3');
+% save('outputcell_May_outlier_mean_1thru10_2.mat','outputcell','-v7.3');
 %%
 clc
 opt.movingrover = 0; % For rover: 0 = stationary, 1 = moving
-opt.LTSn_i  = 2;
+opt.LTSn_i  = 1;
 opt.RAPSn_i = 2; 
 opt.TDn_i   = 3;
 opt.MShbn_i = 1;
@@ -139,13 +139,13 @@ opt.frame = "ned";
 % opt = ploterrgdopscat(output,"kf",opt);
 % opt = plotTraj(output,"kf",opt);
 % opt = plotTraj(output,"raps",opt);
-
 % opt = plotErrorStd(output,opt);
 
 metrics(output,opt)
 % CDF_curves = ploterrcdf(output,opt);
 
-compare_err_std(outputcell,opt,"mean","std")
+compare_err_std(outputcell,opt,"count","std")
+% compare_err_std(outputcell,opt,"count","maxerr")
 
 linkaxes2(opt);
 % compare_err_std(outputcell,opt,"count","std")

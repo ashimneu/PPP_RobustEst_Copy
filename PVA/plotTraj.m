@@ -31,12 +31,7 @@ function option = plotTraj(output,solvername,option)
 %     if ECEF_frame == true
 %         Rot = eye(3);
 %     end
-
-%     % Rotation matrix from ECEF to NED frame
-%     Rot = [0.256585082665972   0.496560105722668   0.829211768114673;
-%         0.888404726250657  -0.459061043893141  -0.000000000413696;
-%         0.380658819413749   0.736675654127671  -0.558934561125126];
-    
+   
     % Plot Time Window
     % N = size(Grdpos,2); % GPS epochs
     propsteps = output.p.numPropSteps;
@@ -60,6 +55,7 @@ function option = plotTraj(output,solvername,option)
         Jydiag = output.Jydiag.LS;
         msr_res = output.resLS{1};
         H_pos = output.H_posLS{1};
+        res_std = output.res_stdLS{1};
     
     elseif lower(solvername) == "lts"
         x_prior = output.prior_state.LTS{LTSn_i};
@@ -69,6 +65,7 @@ function option = plotTraj(output,solvername,option)
         Jydiag = output.Jydiag.LTS{LTSn_i};
         msr_res = output.resLTS{LTSn_i};
         H_pos = output.H_posLTS{LTSn_i};
+        res_std = output.res_stdLTS{LTSn_i};
             
     elseif lower(solvername) == "td"
         x_prior = output.prior_state.TD{TDn_i};
@@ -78,6 +75,7 @@ function option = plotTraj(output,solvername,option)
         Jydiag = output.Jydiag.TD{TDn_i};
         msr_res = output.resTD{TDn_i};
         H_pos = output.H_posTD{TDn_i};
+        res_std = output.res_stdTD{TDn_i};
             
     elseif lower(solvername) == "raps"
         x_prior = output.prior_state.RAPS{RAPSn_i};
@@ -87,6 +85,7 @@ function option = plotTraj(output,solvername,option)
         Jydiag = output.Jydiag.RAPS{RAPSn_i};
         msr_res = output.resRAPS{RAPSn_i};
         H_pos = output.H_posRAPS{RAPSn_i};
+        res_std = output.res_stdRAPS{RAPSn_i};
         
     elseif lower(solvername) == "mshb"
         x_prior = output.prior_state.MShb{MShbn_i};
@@ -96,6 +95,7 @@ function option = plotTraj(output,solvername,option)
         Jydiag = output.Jydiag.MShb{MShbn_i};
         msr_res = output.resMShb{MShbn_i};
         H_pos = output.H_posMShb{MShbn_i};
+        res_std = output.res_stdMShb{MShbn_i};
         
     elseif lower(solvername) == "mstk"
         x_prior = output.prior_state.MStk{MStkn_i};
@@ -104,7 +104,8 @@ function option = plotTraj(output,solvername,option)
         post_cov  = output.post_statecovar.MStk{MStkn_i};
         Jydiag = output.Jydiag.MStk{MStkn_i};
         msr_res = output.resMStk{MStkn_i};
-        H_pos = output.H_posMStk{MStkn_i};        
+        H_pos = output.H_posMStk{MStkn_i};
+        res_std = output.res_stdMStk{MStkn_i};
                 
     elseif lower(solvername) == "lss"
         x_prior = output.prior_state.LSS{LSSn_i};
@@ -114,7 +115,7 @@ function option = plotTraj(output,solvername,option)
         Jydiag = output.Jydiag.LSS{LSSn_i};
         msr_res = output.resLSS{LSSn_i};
         H_pos = output.H_posLSS{LSSn_i};
-        
+        res_std = output.res_stdLSS{LSSn_i};
     end
     
     % Convert state estimates from ECEF to NED frame
@@ -201,8 +202,9 @@ function option = plotTraj(output,solvername,option)
     trvTime = postTime;
 
     % measurement residuals
-    res = msr_res(any(msr_res,2),:); % get rows that aren't all nan
-    
+    notallnanbin = any(msr_res,2);
+    residual = msr_res(notallnanbin,:); % get rows that aren't all nan
+    residual_std = res_std(notallnanbin,:);
 %--------------------------------------------------------------------------
 % Figure paramters
 %--------------------------------------------------------------------------
@@ -441,15 +443,16 @@ function option = plotTraj(output,solvername,option)
     figure(fignum6); clf; hold on; grid on
     xlbl_txt = strcat('Receiver time using GPS second');    
     
-    for i=1:1:size(res,1)   
-        scatter(postTime,res(i,TW1),'Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
+    for i=1:1:size(residual,1)   
+        scatter(postTime,residual(i,TW1),'Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
     end
     xlabel(xlbl_txt)
     ylabel('residual (m)')
     ax = [ax; findall(gcf, 'type', 'axes')];
     title_txt = strcat('Measurement Residual (',upper(solvername),')');
     sgtitle(title_txt)
-
+    
+%--------------------------------------------------------------------------    
 % Largest Residuals
 %--------------------------------------------------------------------------
 
@@ -457,12 +460,45 @@ function option = plotTraj(output,solvername,option)
     fignum7 = getfignum(figtag7);
     figure(fignum7); clf; hold on; grid on
     xlbl_txt = strcat('Receiver time using GPS second');    
-    max_abs_res = max(abs(res),[],1);
+    max_abs_res = max(abs(residual),[],1);
     scatter(postTime,max_abs_res(TW1),'Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
     xlabel(xlbl_txt)
     ylabel('residual (m)')
     ax = [ax; findall(gcf, 'type', 'axes')];
     title_txt = strcat('Largest Absolute Measurement Residual (',upper(solvername),')');
+    sgtitle(title_txt)
+
+%--------------------------------------------------------------------------
+% ith Measurement Residuals
+%--------------------------------------------------------------------------
+
+    figtag = strcat("ith_res_",solvername);
+    fignum = getfignum(figtag);
+    figure(fignum); clf; hold on; grid on
+    xlbl_txt = strcat('Receiver time using GPS second');    
+    
+    idx = 15+[1 2 3 4 5 6 7 8 9];
+    
+    for j= 1:numel(idx) %1:1:size(residual,1) 
+        i = idx(j);
+        subplot(3,3,j); hold on; grid on
+        scatter(postTime,residual(i,TW1),'Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
+        scatter(postTime,residual_std(i,TW1),'MarkerFaceColor','r','Marker',mrkr,'SizeData',sz,'HandleVisibility','off'); 
+        scatter(postTime,-residual_std(i,TW1),'MarkerFaceColor','r','Marker',mrkr,'SizeData',sz,'HandleVisibility','off');
+        ylim(max(abs(residual(i,2:end))).*[-1 1])           
+        title(strcat('sat. veh. #',num2str(i)))
+    end
+    
+    subplot(3,3,1); hold on; ylabel('residual (m)')
+    subplot(3,3,4); hold on; ylabel('residual (m)')
+    subplot(3,3,7); hold on; xlabel(xlbl_txt); ylabel('residual (m)')
+    subplot(3,3,8); hold on; xlabel(xlbl_txt)
+    subplot(3,3,9); hold on; xlabel(xlbl_txt);
+    
+    
+%     legend(strcat(i,'th measurement'));
+    ax = [ax; findall(gcf, 'type', 'axes')];
+    title_txt = strcat('ith Measurement Residual (',upper(solvername),')');
     sgtitle(title_txt)
     
 if 0
