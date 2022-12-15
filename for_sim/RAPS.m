@@ -30,7 +30,8 @@ function [x_post,by,augcost,exitflag] = RAPS(y,H,P,R,J_l,x_prior)
     intcon = 1:1:m;                 % entries of by vector that take only integer value
     option = optimoptions(@intlinprog,'display','off'); % for output supression
     
-    % solve for optimal selection vector (uses Branch & Bound search)
+    % solve for optimal integer measurement selection vector (Branch & Bound search)
+    % solves the optimization problem in eqn(22) in [1].
     [by,~,exitflag,~] = intlinprog(cost,intcon,ieqLHS,ieqRHS,[],[],lowerbound,upperbound,option);
     
     if exitflag == 1
