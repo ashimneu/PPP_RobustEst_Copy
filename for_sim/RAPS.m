@@ -1,17 +1,17 @@
 function [x_post,by,augcost,exitflag] = RAPS(y,H,P,R,J_l,x_prior)
-% Finds all binary vectors that statisfy performance constraint of RAPS. 
-% Next, uses LS approach to estimate state x which corresponds to the
-% lowest cost function.
+% Solves RAPS using B&B integer optimization approach. 
+% Computes MAP state estimate using the selected measurements.
 % OUTPUT:   x_post   - posterior state vector estimate
 %           by       - measurement selection vector (binary)
 %           augcost  - augmented cost for RAPS B&B
 %           exitflag - see MATLAB function: intlinprog for description
-% INPUT:    y    - measurements
-%           H    - measurement matrix
-%           Pcov - Prior Covariance matrix
-%           yCov - Measurement Covariance matrix
-%           J_l  - Information Matrix Lower Bound
+% INPUT:    y - measurements
+%           H - measurement matrix
+%           P - Prior Covariance matrix
+%           r - Measurement Covariance matrix
+%           J_l - Information Matrix Lower Bound
 %           x_prior - prior state vector estimate
+% reference: [1] - PPP_RAPS_Linear.pdf
     
     Jpminus = P^-1; % state prior info. matrix
     Jrminus = R^-1; % measurement info. matrix
@@ -22,6 +22,7 @@ function [x_post,by,augcost,exitflag] = RAPS(y,H,P,R,J_l,x_prior)
     lowerbound = zeros(m,1); % lower bound on measurement selection vector
     upperbound = ones(m,1);  % upper bound on measurement selection vector
     
+    % see intlinprog function documentation for details
     diagR  = diag(R);               % diagonal entries of measurement covariance
     ieqLHS = -((H').^2)./repmat(diagR',n,1); % inequality constraint LHS matrix
     ieqRHS = diag(Jpminus - J_l);   % inequality constraint RHS vector   
@@ -32,12 +33,10 @@ function [x_post,by,augcost,exitflag] = RAPS(y,H,P,R,J_l,x_prior)
     % solve for optimal selection vector (uses Branch & Bound search)
     [by,~,exitflag,~] = intlinprog(cost,intcon,ieqLHS,ieqRHS,[],[],lowerbound,upperbound,option);
     
-
-    bx = ones(n,1); % prior state selection vector (binary) 
     if exitflag == 1
         % feasible solution is found
         [x_post, augcost]  = MAP(by,y,H,E_R,E_P,x_prior);
-        J_out   = calcJb(by,H,R,Jpminus);        
+        J_out   = calcJb(by,H,R,Jpminus); %#ok<*NASGU> % posterior state information matrix       
     else
         % feasible solution not found
         fprintf('\n Exitflag = %1.0f. Feasible solution not found.\n',exitflag)
@@ -45,11 +44,9 @@ function [x_post,by,augcost,exitflag] = RAPS(y,H,P,R,J_l,x_prior)
         
         fprintf('Selecting all measurements.\n')
         by = ones(m,1);
-        x_post  = MAP(by,y,H,E_R,E_P,x_prior);
-        augcost = Inf;
-        J_out   = calcJb(by,H,R,Jpminus); %#ok<*NASGU> 
-    end
-        
+        [x_post, augcost]  = MAP(by,y,H,E_R,E_P,x_prior);
+        J_out   = calcJb(by,H,R,Jpminus); % posterior state information matrix  
+    end        
 end
 %--------------------------------------------------------------------------
 function [x_post,aug_cost] = MAP(by,y,H,E_R,E_P,x_prior)
@@ -63,12 +60,11 @@ function [x_post,aug_cost] = MAP(by,y,H,E_R,E_P,x_prior)
         error('Input arg "by" is empty.');
     else
         Phiby = diag(by);
-        A = [E_R * Phiby * H; E_P];
-        c = [E_R * Phiby * y; E_P * x_prior];
-        x_post = (A'*A)^-1*A'*c; % posterior state estimate
-        aug_cost = norm(A*x_post-c)^2;
+        A = [E_R * Phiby * H; E_P];             % eqn. (10) in [1]
+        c = [E_R * Phiby * y; E_P * x_prior];   % eqn. (10) in [1]
+        x_post = (A'*A)^-1*A'*c; % LeastSquares % posterior state estimate
+        aug_cost = norm(A*x_post-c)^2;          % eqn. (11) in [1]
     end
-
 end
 %--------------------------------------------------------------------------
 function J = calcJb(by,H,R,Jpminus)
@@ -78,5 +74,5 @@ function J = calcJb(by,H,R,Jpminus)
     
     Pby  = diag(by); % Phi(by)                        
     PhiH = Pby * H;
-    J    = PhiH' * R^-1 * PhiH + Jpminus;
+    J    = PhiH' * R^-1 * PhiH + Jpminus; % eqn. (13) in [1]
 end
