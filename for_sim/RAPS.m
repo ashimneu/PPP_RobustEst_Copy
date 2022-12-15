@@ -1,87 +1,82 @@
-function [xhat,by,Augcost,exitflag] = RAPS(y,H,Pcov,yCov,E_P,E_R,mu_x,Jl,xhat_old,iter,p)
-% Finds all binary vectors that statisfy performance constraint from RAPS. 
-% Next, uses LS approach to find x corresponding to lowest cost and 
-% associated binary vector.
-    if nargin == 8
-        xhat_old = mu_x;
-    end
-    [m,n] = size(H);
-    dR = diag(yCov); % diagonal of Covariance matrix of y
-    lowerbound = zeros(m,1); % binary vector lower bound           
-    upperbound = ones(m,1);  % binary vector upper bound 
-    Jminus  = Pcov^-1;
-    ieqLHS  = -((H').^2)./repmat(dR',n,1); % inequality constraint LHS matrix
-    ieqRHS  = diag(Jminus - Jl);  % inequality constraint RHS vector   
-    objfunc = (y-H*xhat_old).^2 .* diag(yCov^-1) ; % objective function
-    intcon  = 1:1:m; % entries of by that take only integer value
-    options = optimoptions(@intlinprog,'display','off'); % for B&B output supression
+function [x_post,by,augcost,exitflag] = RAPS(y,H,P,R,J_l,x_prior)
+% Finds all binary vectors that statisfy performance constraint of RAPS. 
+% Next, uses LS approach to estimate state x which corresponds to the
+% lowest cost function.
+% OUTPUT:   x_post   - posterior state vector estimate
+%           by       - measurement selection vector (binary)
+%           augcost  - augmented cost for RAPS B&B
+%           exitflag - see MATLAB function: intlinprog for description
+% INPUT:    y    - measurements
+%           H    - measurement matrix
+%           Pcov - Prior Covariance matrix
+%           yCov - Measurement Covariance matrix
+%           J_l  - Information Matrix Lower Bound
+%           x_prior - prior state vector estimate
     
-    % solve for optimal selection vector by using (Branch & Bound search)
-    [by,~,exitFlag,~] = intlinprog(objfunc,intcon,ieqLHS,ieqRHS,[],[],lowerbound,upperbound,options);
-    bx = ones(n,1);
+    Jpminus = P^-1; % state prior info. matrix
+    Jrminus = R^-1; % measurement info. matrix
+    E_P = chol(Jpminus); % cholesky decomp. of state prior info. matrix
+    E_R = chol(Jrminus); % cholesky decomp. of measurement info. matrix
 
-    if exitFlag == 1
-        % feasible solution is found.
-        xhat = MAP(bx,by,y,H,E_R,E_P,mu_x);
-        Augcost = getAugcost(by,xhat,y,H,E_R,E_P,mu_x);
-%         J_out = calcJb(by,H,yCov,Pcov);        
+    [m,n] = size(H);
+    lowerbound = zeros(m,1); % lower bound on measurement selection vector
+    upperbound = ones(m,1);  % upper bound on measurement selection vector
+    
+    diagR  = diag(R);               % diagonal entries of measurement covariance
+    ieqLHS = -((H').^2)./repmat(diagR',n,1); % inequality constraint LHS matrix
+    ieqRHS = diag(Jpminus - J_l);   % inequality constraint RHS vector   
+    cost   = (y-H*x_prior).^2 .* diag(Jrminus) ; % cost function
+    intcon = 1:1:m;                 % entries of by vector that take only integer value
+    option = optimoptions(@intlinprog,'display','off'); % for output supression
+    
+    % solve for optimal selection vector (uses Branch & Bound search)
+    [by,~,exitflag,~] = intlinprog(cost,intcon,ieqLHS,ieqRHS,[],[],lowerbound,upperbound,option);
+    
+
+    bx = ones(n,1); % prior state selection vector (binary) 
+    if exitflag == 1
+        % feasible solution is found
+        [x_post, augcost]  = MAP(by,y,H,E_R,E_P,x_prior);
+        J_out   = calcJb(by,H,R,Jpminus);        
     else
-        % Feasible solution not found
-%         fprintf('\n exitflag = %1.0f. Feasible solution not found.\n',exitFlag)
-%         fprintf(' Check "intlinprog" for descriptions on exitflag.\n')        
-        by   = ones(m,1);
-        xhat = MAP(bx,by,y,H,E_R,E_P,mu_x);
-        Augcost = Inf;
-%         J_out  = calcJb(by,H,yCov,Pcov);
+        % feasible solution not found
+        fprintf('\n Exitflag = %1.0f. Feasible solution not found.\n',exitflag)
+        fprintf('Check exitflag in function "intlinprog" for more details.\n')
+        
+        fprintf('Selecting all measurements.\n')
+        by = ones(m,1);
+        x_post  = MAP(by,y,H,E_R,E_P,x_prior);
+        augcost = Inf;
+        J_out   = calcJb(by,H,R,Jpminus); %#ok<*NASGU> 
     end
-    
-%     if sum(by(1:floor(m/2))) <= floor(m/4)
-%         bysum = sum(by(1:floor(m/2)));
-%     end
-    
-    if nargout == 4
-        exitflag = exitFlag;
-    end  
-    
-%     debug = 0;
-%     if (p.i==30 && iter >1), debug = 1; end
-%     if debug
-%         idx = [1:6, 10:size(ieqRHS,1)]';
-%         tempLHS = sum(ieqLHS,2);
-%         tempLHS = tempLHS(idx,:);
-%         RHS = ieqRHS(idx);
-%     end
+        
 end
 %--------------------------------------------------------------------------
-function xhat = MAP(bx,by,y,H,E_R,E_P,mu_x)
-% get standard Maximum A Posteriori estimation for 
-% measurement selection using vector b.
-    Pby  = diag(by);
-    Pbx  = diag(bx);
-    A    = [E_R*Pby*H; E_P*Pbx];
-    c    = [E_R*Pby*y; E_P*Pbx*mu_x];
-    xhat = (A'*A)^-1*A'*c; % MAP solution
-end
-%--------------------------------------------------------------------------
-function aug_cost = getAugcost(by,xhat,y,H,E_R,E_P,mu_x)
-    % compute augmented cost for RAPS B&B
-    % by = measurement selection binary vector
-    
+function [x_post,aug_cost] = MAP(by,y,H,E_R,E_P,x_prior)
+    % Maximum A Posteriori state estimate and the augmented cost function
+    % when doing measurement selection
+    % INPUT: by  - measurement selection vector
+    %        E_P - sqrt(P^-1)
+    %        E_R - sqrt(R^-1)
+
     if isempty(by)
-        warning('Input arg "by" is empty.')
-        aug_cost = inf;
+        error('Input arg "by" is empty.');
     else
         Phiby = diag(by);
-        A = [E_R*Phiby*H; E_P];
-        c = [E_R*Phiby*y; E_P*mu_x];
-        aug_cost = norm(A*xhat-c)^2;
+        A = [E_R * Phiby * H; E_P];
+        c = [E_R * Phiby * y; E_P * x_prior];
+        x_post = (A'*A)^-1*A'*c; % posterior state estimate
+        aug_cost = norm(A*x_post-c)^2;
     end
+
 end
 %--------------------------------------------------------------------------
-function Jb = calcJb(by,H,yCov,Pcov)
-% calculates posterior information matrix for the selection vector b
-
+function J = calcJb(by,H,R,Jpminus)
+    % Calculates posterior state information matrix when doing measurement selection
+    % INPUT: by - measurement selection vector
+    %        Jpminus - State information matrix prior, Jpminus = Pminus^-1
+    
     Pby  = diag(by); % Phi(by)                        
     PhiH = Pby * H;
-    Jb   = PhiH' * yCov^-1 * PhiH + Pcov^-1;
+    J    = PhiH' * R^-1 * PhiH + Jpminus;
 end
